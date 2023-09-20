@@ -172,6 +172,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"System",
 
 		"Carbon.Common",
+		"Carbon.Common.Client",
 		"Carbon.SDK",
 
 		"MySql.Data", // v6.9.5.0
