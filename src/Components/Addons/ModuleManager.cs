@@ -165,7 +165,7 @@ internal sealed class ModuleManager : AddonManager
 								module.OnEnable(EventArgs.Empty);
 
 								Carbon.Bootstrap.Events
-									.Trigger(CarbonEvent.ModuleLoaded, new CarbonEventArgs(file));
+									.Trigger(CarbonEvent.ModuleLoaded, new ModuleEventArgs(file, module, types));
 
 								moduleTypes.Add(type);
 								_loaded.Add(new() { Addon = module, Shared = asm.GetExportedTypes(), Types = moduleTypes, File = file });
@@ -251,7 +251,22 @@ internal sealed class ModuleManager : AddonManager
 				continue;
 			}
 
-			module.Addon.OnUnloaded(EventArgs.Empty);
+			var arg = new ModuleEventArgs(module.File, module.Addon as ICarbonModule, null);
+
+			try
+			{
+				module.Addon.OnUnloaded(EventArgs.Empty);
+
+				Carbon.Bootstrap.Events
+					.Trigger(CarbonEvent.ModuleUnloaded, arg);
+			}
+			catch (Exception ex)
+			{
+				Logger.Error($"Couldn't unload module '{module.File}'", ex);
+
+				Carbon.Bootstrap.Events
+					.Trigger(CarbonEvent.ModuleUnloadFailed, arg);
+			}
 		}
 
 		var cache = new Dictionary<string, AssemblyDefinition>();
@@ -270,7 +285,7 @@ internal sealed class ModuleManager : AddonManager
 			return raw;
 		}
 
-		if (!nonReloadables.Contains(file))
+		if (File.Exists(file) && !nonReloadables.Contains(file))
 		{
 			switch (Path.GetExtension(file))
 			{
@@ -281,7 +296,6 @@ internal sealed class ModuleManager : AddonManager
 					}
 					else
 					{
-
 						var stream = new MemoryStream(Process(File.ReadAllBytes(file)));
 						var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(stream, new ReaderParameters { AssemblyResolver = new Resolver() });
 						var originalName = assembly.Name.Name;
@@ -330,17 +344,18 @@ internal sealed class ModuleManager : AddonManager
 				var moduleTypes = new List<Type>();
 				foreach (var type in types)
 				{
-					if (Activator.CreateInstance(type) is ICarbonModule mod)
+					if (Activator.CreateInstance(type) is ICarbonModule module)
 					{
-						Hydrate(processedAssembly, mod);
+						Hydrate(processedAssembly, module);
 
 						moduleTypes.Add(type);
-						existentItem.Addon = mod;
+						existentItem.Addon = module;
 
 						Logger.Debug($"A new instance of '{type}' created");
-						modules.Add(_assembly.Key, mod);
+						modules.Add(_assembly.Key, module);
 					}
 				}
+
 				existentItem.Types = moduleTypes;
 			}
 		}
@@ -351,13 +366,16 @@ internal sealed class ModuleManager : AddonManager
 			{
 				var moduleFile = Path.Combine(Context.CarbonModules, $"{module.Key}.dll");
 				var arg = new CarbonEventArgs(moduleFile);
+				var existentItem = _loaded.FirstOrDefault(x => x.File == moduleFile);
 
 				module.Value.Awake(arg);
 				module.Value.OnLoaded(arg);
+
+				// for now force all modules to be enabled when loaded
 				module.Value.OnEnable(arg);
 
 				Carbon.Bootstrap.Events
-					.Trigger(CarbonEvent.ModuleLoaded, arg);
+					.Trigger(CarbonEvent.ModuleLoaded, new ModuleEventArgs(moduleFile, module.Value, existentItem.Shared));
 			}
 			catch (Exception e)
 			{

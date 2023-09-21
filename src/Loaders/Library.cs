@@ -44,7 +44,9 @@ internal sealed class LibraryLoader : Singleton<LibraryLoader>, IDisposable
 	private readonly string[] _directoryList =
 	{
 		Context.CarbonLib,
-		Context.GameManaged
+		Context.GameManaged,
+		Context.CarbonModules,
+		Context.CarbonExtensions
 	};
 
 	internal AppDomain GetDomain()

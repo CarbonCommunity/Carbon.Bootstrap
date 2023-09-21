@@ -56,7 +56,6 @@ internal sealed class FileWatcherManager : CarbonBehaviour, IFileWatcherManager,
 					break;
 
 				case WatcherChangeTypes.Created:
-					Utility.Logger.Log($"YEET {e.FullPath}");
 					item.OnFileCreated?.Invoke(sender, e.FullPath);
 					break;
 
