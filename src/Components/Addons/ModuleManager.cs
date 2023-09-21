@@ -100,9 +100,7 @@ internal sealed class ModuleManager : AddonManager
 
 	internal void Awake()
 	{
-		var reloaded = false;
-
-		Carbon.Bootstrap.Watcher.Watch(new WatchFolder
+		Carbon.Bootstrap.Watcher.Watch(Watcher = new WatchFolder
 		{
 			Extension = "*.dll",
 			IncludeSubFolders = false,
@@ -110,11 +108,16 @@ internal sealed class ModuleManager : AddonManager
 
 			OnFileCreated = (sender, file) =>
 			{
-				if (reloaded) return;
-				reloaded = true;
-
-				Reload("ModuleManager.Awake");
+				Reload(file, "ModuleManager.Created");
 			},
+			OnFileChanged = (sender, file) =>
+			{
+				Reload(file, "ModuleManager.Changed");
+			},
+			OnFileDeleted = (sender, file) =>
+			{
+				Reload(file, "ModuleManager.Deleted");
+			}
 		});
 	}
 
@@ -236,7 +239,7 @@ internal sealed class ModuleManager : AddonManager
 	}
 
 	[MethodImpl(MethodImplOptions.NoInlining)]
-	public override void Reload(string requester)
+	public override void Reload(string file, string requester)
 	{
 		var nonReloadables = new List<string>();
 
@@ -267,29 +270,25 @@ internal sealed class ModuleManager : AddonManager
 			return raw;
 		}
 
-		foreach (var directory in _directories)
+		if (!nonReloadables.Contains(file))
 		{
-			foreach (var file in Directory.GetFiles(directory))
+			switch (Path.GetExtension(file))
 			{
-				if (nonReloadables.Contains(file)) continue;
-
-				switch (Path.GetExtension(file))
-				{
-					case ".dll":
-
-						if (!_hasLoaded)
-						{
-							Load(file, "ModuleManager.Reload");
-							continue;
-						}
+				case ".dll":
+					if (!_hasLoaded)
+					{
+						Load(file, "ModuleManager.Reload");
+					}
+					else
+					{
 
 						var stream = new MemoryStream(Process(File.ReadAllBytes(file)));
 						var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(stream, new ReaderParameters { AssemblyResolver = new Resolver() });
 						var originalName = assembly.Name.Name;
 						assembly.Name = new AssemblyNameDefinition($"{assembly.Name.Name}_{Guid.NewGuid()}", assembly.Name.Version);
 						cache.Add(originalName, assembly);
-						break;
-				}
+					}
+					break;
 			}
 		}
 
@@ -319,11 +318,11 @@ internal sealed class ModuleManager : AddonManager
 
 			if (AssemblyManager.IsType<ICarbonModule>(processedAssembly, out var types))
 			{
-				var file = Path.Combine(Context.CarbonModules, $"{_assembly.Key}.dll");
-				var existentItem = _loaded.FirstOrDefault(x => x.File == file);
+				var moduleFile = Path.Combine(Context.CarbonModules, $"{_assembly.Key}.dll");
+				var existentItem = _loaded.FirstOrDefault(x => x.File == moduleFile);
 				if (existentItem == null)
 				{
-					_loaded.Add(existentItem = new() { File = file });
+					_loaded.Add(existentItem = new() { File = moduleFile });
 				}
 
 				existentItem.Shared = processedAssembly.GetExportedTypes();
@@ -350,8 +349,8 @@ internal sealed class ModuleManager : AddonManager
 		{
 			try
 			{
-				var file = Path.Combine(Context.CarbonModules, $"{module.Key}.dll");
-				var arg = new CarbonEventArgs(file);
+				var moduleFile = Path.Combine(Context.CarbonModules, $"{module.Key}.dll");
+				var arg = new CarbonEventArgs(moduleFile);
 
 				module.Value.Awake(arg);
 				module.Value.OnLoaded(arg);

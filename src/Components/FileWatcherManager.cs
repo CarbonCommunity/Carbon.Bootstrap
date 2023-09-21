@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using API.Abstracts;
 using API.Assembly;
+using UnityEngine;
 
 /*
  *
@@ -27,13 +28,7 @@ internal sealed class FileWatcherManager : CarbonBehaviour, IFileWatcherManager,
 	{
 		foreach (WatchFolder item in _watchlist)
 		{
-			foreach (string file in Directory.GetFiles(item.Handler.Path, item.Handler.Filter))
-			{
-				FileSystemEventArgs args = new FileSystemEventArgs(
-					WatcherChangeTypes.Created, item.Handler.Path, Path.GetFileName(file));
-				FileSystemEvent(item.Handler, args);
-			}
-			item.Handler.EnableRaisingEvents = true;
+			item.TriggerAll(WatcherChangeTypes.Created);
 		}
 	}
 
@@ -61,6 +56,7 @@ internal sealed class FileWatcherManager : CarbonBehaviour, IFileWatcherManager,
 					break;
 
 				case WatcherChangeTypes.Created:
+					Utility.Logger.Log($"YEET {e.FullPath}");
 					item.OnFileCreated?.Invoke(sender, e.FullPath);
 					break;
 

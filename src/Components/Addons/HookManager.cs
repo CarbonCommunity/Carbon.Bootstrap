@@ -100,7 +100,7 @@ internal sealed class HookManager : AddonManager
 	}
 
 	[MethodImpl(MethodImplOptions.NoInlining)]
-	public override void Reload(string requester)
+	public override void Reload(string file, string requester)
 	{
 
 	}

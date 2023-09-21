@@ -34,6 +34,8 @@ internal abstract class AddonManager : CarbonBehaviour, IAddonManager
 	internal List<Item> _loaded
 	{ get; set; } = new();
 
+	public WatchFolder Watcher { get; internal set; }
+
 	public IReadOnlyDictionary<Type, string> Loaded
 	{
 		get
@@ -72,7 +74,7 @@ internal abstract class AddonManager : CarbonBehaviour, IAddonManager
 
 	public abstract Assembly Load(string file, string requester);
 	public abstract void Unload(string file, string requester);
-	public abstract void Reload(string requester);
+	public abstract void Reload(string file, string requester);
 
 	internal virtual void Hydrate(Assembly assembly, ICarbonAddon addon)
 	{

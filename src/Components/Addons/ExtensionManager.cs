@@ -10,6 +10,7 @@ using API.Events;
 using Facepunch.Extend;
 using Loaders;
 using Mono.Cecil;
+using Steamworks.Data;
 using UnityEngine;
 using Utility;
 using Logger = Utility.Logger;
@@ -103,9 +104,7 @@ internal sealed class ExtensionManager : AddonManager
 
 	internal void Awake()
 	{
-		var reloaded = false;
-
-		Carbon.Bootstrap.Watcher.Watch(new WatchFolder
+		Carbon.Bootstrap.Watcher.Watch(Watcher = new WatchFolder
 		{
 			Extension = "*.dll",
 			IncludeSubFolders = false,
@@ -113,11 +112,16 @@ internal sealed class ExtensionManager : AddonManager
 
 			OnFileCreated = (sender, file) =>
 			{
-				if (reloaded) return;
-				reloaded = true;
-
-				Reload("ExtensionManager.Awake");
+				Reload(file, "ExtensionManager.Created");
 			},
+			OnFileChanged = (sender, file) =>
+			{
+				Reload(file, "ExtensionManager.Changed");
+			},
+			OnFileDeleted = (sender, file) =>
+			{
+				Reload(file, "ExtensionManager.Deleted");
+			}
 		});
 	}
 
@@ -220,7 +224,7 @@ internal sealed class ExtensionManager : AddonManager
 	}
 
 	[MethodImpl(MethodImplOptions.NoInlining)]
-	public override void Reload(string requester)
+	public override void Reload(string file, string requester)
 	{
 		var nonReloadables = new List<string>();
 
@@ -251,28 +255,25 @@ internal sealed class ExtensionManager : AddonManager
 			return raw;
 		}
 
-		foreach (var directory in _directories)
+		if (File.Exists(file) && !nonReloadables.Contains(file))
 		{
-			foreach (var file in Directory.GetFiles(directory))
+			switch (Path.GetExtension(file))
 			{
-				if (nonReloadables.Contains(file)) continue;
-
-				switch (Path.GetExtension(file))
-				{
-					case ".dll":
-						if (!_hasLoaded)
-						{
-							Load(file, "ExtensionManager.Reload");
-							continue;
-						}
+				case ".dll":
+					if (!_hasLoaded)
+					{
+						Load(file, "ExtensionManager.Reload");
+					}
+					else
+					{
 
 						var stream = new MemoryStream(Process(File.ReadAllBytes(file)));
 						var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(stream, new ReaderParameters { AssemblyResolver = new Resolver() });
 						var originalName = assembly.Name.Name;
 						assembly.Name = new AssemblyNameDefinition($"{assembly.Name.Name}_{Guid.NewGuid()}", assembly.Name.Version);
 						cache.Add(originalName, assembly);
-						break;
-				}
+					}
+					break;
 			}
 		}
 
@@ -302,11 +303,11 @@ internal sealed class ExtensionManager : AddonManager
 
 			if (AssemblyManager.IsType<ICarbonExtension>(processedAssembly, out var types))
 			{
-				var file = Path.Combine(Context.CarbonExtensions, $"{_assembly.Key}.dll");
-				var existentItem = _loaded.FirstOrDefault(x => x.File == file);
+				var extensionFile = Path.Combine(Context.CarbonExtensions, $"{_assembly.Key}.dll");
+				var existentItem = _loaded.FirstOrDefault(x => x.File == extensionFile);
 				if (existentItem == null)
 				{
-					_loaded.Add(existentItem = new() { File = file });
+					_loaded.Add(existentItem = new() { File = extensionFile });
 				}
 
 				existentItem.Shared = processedAssembly.GetExportedTypes();
@@ -331,8 +332,8 @@ internal sealed class ExtensionManager : AddonManager
 		{
 			try
 			{
-				var file = Path.Combine(Context.CarbonExtensions, $"{extension.Key}.dll");
-				var arg = new CarbonEventArgs(file);
+				var extensionFile = Path.Combine(Context.CarbonExtensions, $"{extension.Key}.dll");
+				var arg = new CarbonEventArgs(extensionFile);
 
 				extension.Value.Awake(arg);
 				extension.Value.OnLoaded(arg);
