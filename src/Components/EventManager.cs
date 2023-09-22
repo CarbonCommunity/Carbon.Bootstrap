@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using API.Abstracts;
 using API.Events;
+using Utility;
 
 /*
  *
@@ -36,7 +37,15 @@ internal sealed class EventManager : CarbonBehaviour, IEventManager
 #endif
 		if (!events.ContainsKey(eventId)) return;
 		Action<EventArgs> @event = events[eventId] as Action<EventArgs>;
-		@event?.Invoke(args);
+
+		try
+		{
+			@event?.Invoke(args);
+		}
+		catch(Exception ex)
+		{
+			Logger.Error($"Failed executing {eventId}", ex);
+		}
 	}
 
 	public void Unsubscribe(CarbonEvent eventId, Action<EventArgs> callback)

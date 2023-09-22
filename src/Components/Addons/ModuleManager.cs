@@ -168,7 +168,7 @@ internal sealed class ModuleManager : AddonManager
 									.Trigger(CarbonEvent.ModuleLoaded, new ModuleEventArgs(file, module, types));
 
 								moduleTypes.Add(type);
-								_loaded.Add(new() { Addon = module, Shared = asm.GetExportedTypes(), Types = moduleTypes, File = file });
+								_loaded.Add(new() { Addon = module, Shared = asm.GetTypes(), Types = moduleTypes, File = file });
 							}
 							catch (Exception e)
 							{
@@ -242,30 +242,32 @@ internal sealed class ModuleManager : AddonManager
 	public override void Reload(string file, string requester)
 	{
 		var nonReloadables = new List<string>();
+		var currentlyLoaded = _loaded.FirstOrDefault(x => x.File == file);
 
-		foreach (var module in _loaded)
+		if (currentlyLoaded != null)
 		{
-			if (!module.Addon.GetType().HasAttribute(typeof(HotloadableAttribute)))
+			if (!currentlyLoaded.Addon.GetType().HasAttribute(typeof(HotloadableAttribute)))
 			{
-				nonReloadables.Add(module.File);
-				continue;
+				nonReloadables.Add(currentlyLoaded.File);
 			}
-
-			var arg = new ModuleEventArgs(module.File, module.Addon as ICarbonModule, null);
-
-			try
+			else
 			{
-				module.Addon.OnUnloaded(EventArgs.Empty);
+				var arg = new ModuleEventArgs(currentlyLoaded.File, currentlyLoaded.Addon as ICarbonModule, null);
 
-				Carbon.Bootstrap.Events
-					.Trigger(CarbonEvent.ModuleUnloaded, arg);
-			}
-			catch (Exception ex)
-			{
-				Logger.Error($"Couldn't unload module '{module.File}'", ex);
+				try
+				{
+					currentlyLoaded.Addon.OnUnloaded(EventArgs.Empty);
 
-				Carbon.Bootstrap.Events
-					.Trigger(CarbonEvent.ModuleUnloadFailed, arg);
+					Carbon.Bootstrap.Events
+						.Trigger(CarbonEvent.ModuleUnloaded, arg);
+				}
+				catch (Exception ex)
+				{
+					Logger.Error($"Couldn't unload module '{currentlyLoaded.File}'", ex);
+
+					Carbon.Bootstrap.Events
+						.Trigger(CarbonEvent.ModuleUnloadFailed, arg);
+				}
 			}
 		}
 
@@ -339,7 +341,7 @@ internal sealed class ModuleManager : AddonManager
 					_loaded.Add(existentItem = new() { File = moduleFile });
 				}
 
-				existentItem.Shared = processedAssembly.GetExportedTypes();
+				existentItem.Shared = processedAssembly.GetTypes();
 
 				var moduleTypes = new List<Type>();
 				foreach (var type in types)

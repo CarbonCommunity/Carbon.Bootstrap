@@ -95,7 +95,6 @@ internal sealed class ExtensionManager : AddonManager
 
 			return assembly;
 		}
-
 		public AssemblyDefinition Resolve(AssemblyNameReference name, ReaderParameters parameters)
 		{
 			return Resolve(name);
@@ -170,7 +169,7 @@ internal sealed class ExtensionManager : AddonManager
 									.Trigger(CarbonEvent.ExtensionLoaded, arg);
 
 								extensionTypes.Add(type);
-								_loaded.Add(new() { Addon = extension, Shared = asm.GetExportedTypes(), Types = extensionTypes, File = file });
+								_loaded.Add(new() { Addon = extension, Shared = asm.GetTypes(), Types = extensionTypes, File = file });
 							}
 							catch (Exception e)
 							{
@@ -227,16 +226,18 @@ internal sealed class ExtensionManager : AddonManager
 	public override void Reload(string file, string requester)
 	{
 		var nonReloadables = new List<string>();
+		var currentlyLoaded = _loaded.FirstOrDefault(x => x.File == file);
 
-		foreach (var extension in _loaded)
+		if (currentlyLoaded != null)
 		{
-			if (!extension.Addon.GetType().HasAttribute(typeof(HotloadableAttribute)))
+			if (!currentlyLoaded.Addon.GetType().HasAttribute(typeof(HotloadableAttribute)))
 			{
-				nonReloadables.Add(extension.File);
-				continue;
+				nonReloadables.Add(currentlyLoaded.File);
 			}
-
-			extension.Addon.OnUnloaded(EventArgs.Empty);
+			else
+			{
+				currentlyLoaded.Addon.OnUnloaded(EventArgs.Empty);
+			}
 		}
 
 		var cache = new Dictionary<string, AssemblyDefinition>();
@@ -266,7 +267,6 @@ internal sealed class ExtensionManager : AddonManager
 					}
 					else
 					{
-
 						var stream = new MemoryStream(Process(File.ReadAllBytes(file)));
 						var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(stream, new ReaderParameters { AssemblyResolver = new Resolver() });
 						var originalName = assembly.Name.Name;
