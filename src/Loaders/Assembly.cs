@@ -87,7 +87,7 @@ internal sealed class AssemblyLoader : IDisposable
 		}
 		else
 		{
-			asm = Assembly.Load(raw);
+			asm = Assembly.LoadFile(path);
 		}
 
 		cache = new Item { Name = file, Raw = raw, Assembly = asm };

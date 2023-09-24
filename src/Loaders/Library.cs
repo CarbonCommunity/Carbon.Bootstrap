@@ -112,7 +112,7 @@ internal sealed class LibraryLoader : Singleton<LibraryLoader>, IDisposable
 				return cache;
 			}
 
-			Assembly asm = Assembly.Load(raw);
+			Assembly asm = Assembly.LoadFile(path);
 			cache = new Item { Name = name, Raw = raw, Assembly = asm };
 			_cache.Add(sha1, cache);
 
