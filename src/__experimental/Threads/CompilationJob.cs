@@ -69,7 +69,7 @@ public class CompilationJob : IThreadJob
 		{
 			try
 			{
-				byte[] raw = Carbon.Bootstrap.AssemblyEx.Read(extension.Value)
+				byte[] raw = Carbon.Bootstrap.AssemblyEx.Read(extension.Value.Key)
 					?? throw new Exception();
 
 				using MemoryStream stream = new(raw);

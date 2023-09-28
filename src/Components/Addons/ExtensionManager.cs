@@ -299,7 +299,6 @@ internal sealed class ExtensionManager : AddonManager
 
 			var bytes = memoryStream.ToArray();
 			var processedAssembly = Assembly.Load(bytes);
-			Array.Clear(bytes, 0, bytes.Length);
 
 			if (AssemblyManager.IsType<ICarbonExtension>(processedAssembly, out var types))
 			{
@@ -310,6 +309,7 @@ internal sealed class ExtensionManager : AddonManager
 					_loaded.Add(existentItem = new() { File = extensionFile });
 				}
 
+				existentItem.PostProcessedRaw = bytes;
 				existentItem.Shared = processedAssembly.GetExportedTypes();
 
 				var extensionTypes = new List<Type>();

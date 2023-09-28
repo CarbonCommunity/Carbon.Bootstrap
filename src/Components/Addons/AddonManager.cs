@@ -20,6 +20,7 @@ internal abstract class AddonManager : CarbonBehaviour, IAddonManager
 {
 	internal class Item
 	{
+		public byte[] PostProcessedRaw { get; internal set; }
 		public ICarbonAddon Addon { get; internal set; }
 		public IReadOnlyList<Type> Types { get; internal set; }
 		public IReadOnlyList<Type> Shared { get; internal set; }
@@ -36,16 +37,16 @@ internal abstract class AddonManager : CarbonBehaviour, IAddonManager
 
 	public WatchFolder Watcher { get; internal set; }
 
-	public IReadOnlyDictionary<Type, string> Loaded
+	public IReadOnlyDictionary<Type, KeyValuePair<string, byte[]>> Loaded
 	{
 		get
 		{
-			var dictionary = new Dictionary<Type, string>();
+			var dictionary = new Dictionary<Type, KeyValuePair<string, byte[]>>();
 			foreach (var item in _loaded)
 			{
 				foreach (var type in item.Types)
 				{
-					dictionary.Add(type, item.File);
+					dictionary.Add(type,new KeyValuePair<string, byte[]>(item.File, item.PostProcessedRaw));
 				}
 			}
 

@@ -83,15 +83,14 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 				if (raw != null) return raw;
 			}
 		}
-		if (Extensions.Loaded.Values.Contains(file))
+
+		foreach(var extension in Extensions.Loaded.Values)
 		{
-			raw = Extensions.Read(file);
-			if (raw != null) return raw;
-		}
-		if (Modules.Loaded.Values.Contains(file))
-		{
-			raw = Modules.Read(file);
-			if (raw != null) return raw;
+			if (extension.Key == file)
+			{
+				raw = Extensions.Read(file);
+				if (raw != null) return raw;
+			}
 		}
 
 		// if (_whitelistLibs.Contains(file))

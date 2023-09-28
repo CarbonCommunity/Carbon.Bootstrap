@@ -139,7 +139,8 @@ internal sealed class ModuleManager : AddonManager
 			{
 				case ".dll":
 					IEnumerable<Type> types;
-					Assembly asm = _loader.Load(file, requester, _directories, blacklist, whitelist)?.Assembly
+					IAssemblyCache cache = _loader.Load(file, requester, _directories, blacklist, whitelist);
+					Assembly asm = cache?.Assembly
 						?? throw new ReflectionTypeLoadException(null, null, null);
 
 					if (AssemblyManager.IsType<ICarbonModule>(asm, out types))
@@ -168,7 +169,7 @@ internal sealed class ModuleManager : AddonManager
 									.Trigger(CarbonEvent.ModuleLoaded, new ModuleEventArgs(file, module, types));
 
 								moduleTypes.Add(type);
-								_loaded.Add(new() { Addon = module, Shared = asm.GetTypes(), Types = moduleTypes, File = file });
+								_loaded.Add(new() { Addon = module, PostProcessedRaw = cache.Raw, Shared = asm.GetTypes(), Types = moduleTypes, File = file });
 							}
 							catch (Exception e)
 							{
@@ -331,7 +332,6 @@ internal sealed class ModuleManager : AddonManager
 
 			var bytes = memoryStream.ToArray();
 			var processedAssembly = Assembly.Load(bytes);
-			Array.Clear(bytes, 0, bytes.Length);
 
 			if (AssemblyManager.IsType<ICarbonModule>(processedAssembly, out var types))
 			{
@@ -342,6 +342,7 @@ internal sealed class ModuleManager : AddonManager
 					_loaded.Add(existentItem = new() { File = moduleFile });
 				}
 
+				existentItem.PostProcessedRaw = bytes;
 				existentItem.Shared = processedAssembly.GetTypes();
 
 				var moduleTypes = new List<Type>();
