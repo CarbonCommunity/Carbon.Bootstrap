@@ -302,8 +302,10 @@ internal sealed class ModuleManager : AddonManager
 						var stream = new MemoryStream(Process(File.ReadAllBytes(file)));
 						var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(stream, new ReaderParameters { AssemblyResolver = new Resolver() });
 						var originalName = assembly.Name.Name;
-						var originalVersion = assembly.Name.Version;
+						// var originalVersion = assembly.Name.Version;
+						// assembly.Name.Version = new Version(originalVersion.Major, originalVersion.Minor, originalVersion.Build + Iterations++, originalVersion.Revision);
 						// assembly.Name = new AssemblyNameDefinition($"{assembly.Name.Name}_{Guid.NewGuid()}", assembly.Name.Version);
+
 						cache.Add(originalName, assembly);
 					}
 					break;
