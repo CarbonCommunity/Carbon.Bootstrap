@@ -23,7 +23,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\Carbon.Compat\Carbon.Compat\Carbon.Compat.csproj" />
+		<ProjectReference Include="..\Carbon.Compat\Carbon.Compat.csproj" />
+		<ProjectReference Include="..\Carbon.Common\Carbon.Common.csproj" />
 	</ItemGroup>
 
 	<Target Name="CustomRelease" AfterTargets="Build" DependsOnTargets="PrepareRelease">
