@@ -139,7 +139,7 @@ public sealed class Bootstrap
 #if MINIMAL
 					$" Minimal" +
 #endif
-					$" {Analytics.Version}/{Analytics.Platform}/{Analytics.Protocol} [{Build.Git.Branch}] on Rust {BuildInfo.Current.Build.Number}/{Rust.Protocol.printable}");
+					$" {Analytics.Version}/{Analytics.Platform}/{Analytics.Protocol} [{Build.Git.Branch}] [{Build.Git.Tag}] on Rust {BuildInfo.Current.Build.Number}/{Rust.Protocol.printable}");
 			}
 			else
 			{
@@ -147,7 +147,7 @@ public sealed class Bootstrap
 #if MINIMAL
 					$" Minimal" +
 #endif
-					$" <color=#d14419>{Analytics.Version}/{Analytics.Platform}/{Analytics.Protocol}</color> [{Build.Git.Branch}] on Rust <color=#d14419>{BuildInfo.Current.Build.Number}/{Rust.Protocol.printable}</color>.");
+					$" <color=#d14419>{Analytics.Version}/{Analytics.Platform}/{Analytics.Protocol}</color> [{Build.Git.Branch}] [{Build.Git.Tag}] on Rust <color=#d14419>{BuildInfo.Current.Build.Number}/{Rust.Protocol.printable}</color>.");
 
 			}
 		});
