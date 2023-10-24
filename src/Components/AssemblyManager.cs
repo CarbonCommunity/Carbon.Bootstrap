@@ -7,12 +7,13 @@ using System.Text.RegularExpressions;
 using API.Abstracts;
 using API.Assembly;
 using API.Commands;
+using Carbon.Compat;
 using Loaders;
 using Utility;
 
 /*
  *
- * Copyright (c) 2022-2023 Carbon Community 
+ * Copyright (c) 2022-2023 Carbon Community
  * All rights reserved.
  *
  */
@@ -55,6 +56,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		gameObject.AddComponent<ExtensionManager>();
 		gameObject.AddComponent<HookManager>();
 		gameObject.AddComponent<ModuleManager>();
+		gameObject.AddComponent<CompatManager>();
 
 #if EXPERIMENTAL
 		gameObject.AddComponent<PluginManager>();
@@ -86,7 +88,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 
 		foreach(var extension in Extensions.Loaded.Values)
 		{
-			if (extension.Key == file)
+			if (Path.GetFileName(extension.Key) == file)
 			{
 				raw = Extensions.Read(file);
 				if (raw != null) return raw;
