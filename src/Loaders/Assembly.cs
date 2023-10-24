@@ -4,11 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using API.Assembly;
+using Carbon;
 using Utility;
+using Logger = Utility.Logger;
 
 /*
  *
- * Copyright (c) 2022-2023 Carbon Community 
+ * Copyright (c) 2022-2023 Carbon Community
  * All rights reserved.
  *
  */
@@ -33,8 +35,15 @@ internal sealed class AssemblyLoader : IDisposable
 		Context.CarbonExtensions,
 	};
 
+	public enum ProcessTypes
+	{
+		Default,
+		Extension,
+		HarmonyMod
+	}
+
 	internal IAssemblyCache Load(string file, string requester,
-		string[] directories, IReadOnlyList<string> blackList, IReadOnlyList<string> whiteList)
+		string[] directories, IReadOnlyList<string> blackList, IReadOnlyList<string> whiteList, ProcessTypes processType = ProcessTypes.Default)
 	{
 		// normalize filename
 		file = Path.GetFileName(file);
@@ -68,6 +77,31 @@ internal sealed class AssemblyLoader : IDisposable
 		}
 
 		byte[] raw = File.ReadAllBytes(path);
+
+		switch (processType)
+		{
+			case ProcessTypes.Extension:
+				ConversionResult oxideConvert = Community.Runtime.Compat.AttemptOxideConvert(ref raw);
+
+				switch (oxideConvert)
+				{
+					case ConversionResult.Fail:
+						Logger.Warn($" >> Failed Oxide extension conversion for '{file}'");
+						return default;
+				}
+				break;
+
+			case ProcessTypes.HarmonyMod:
+				Community.Runtime.Compat.ConvertHarmonyMod(ref raw);
+
+				if (raw == null)
+				{
+					Logger.Warn($" >> Failed HarmonyMod conversion for '{file}'");
+					return default;
+				}
+				break;
+		}
+
 		string sha1 = Util.sha1(raw);
 
 		if (_cache.TryGetValue(sha1, out Item cache))
