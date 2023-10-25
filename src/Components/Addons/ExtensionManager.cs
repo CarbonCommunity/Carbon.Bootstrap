@@ -44,14 +44,17 @@ internal sealed class ExtensionManager : AddonManager
 	 */
 
 	internal bool _hasLoaded;
+	internal AssemblyLoader.ProcessTypes _currentProcessType;
 
 	private readonly string[] _directories =
 	{
 		Context.CarbonExtensions,
+		Context.CarbonHarmonyMods,
 	};
 	private static readonly string[] _references =
-{
+	{
 		Context.CarbonExtensions,
+		Context.CarbonHarmonyMods,
 		Context.CarbonManaged,
 		Context.CarbonLib,
 		Context.GameManaged
@@ -112,14 +115,40 @@ internal sealed class ExtensionManager : AddonManager
 
 			OnFileCreated = (sender, file) =>
 			{
+				_currentProcessType = AssemblyLoader.ProcessTypes.Extension;
 				Load(file, "ExtensionManager.Created");
 			},
 			OnFileChanged = (sender, file) =>
 			{
+				_currentProcessType = AssemblyLoader.ProcessTypes.Extension;
 				Load(file, "ExtensionManager.Changed");
 			},
 			OnFileDeleted = (sender, file) =>
 			{
+				_currentProcessType = AssemblyLoader.ProcessTypes.Extension;
+				Load(file, "ExtensionManager.Deleted");
+			}
+		});
+
+		Carbon.Bootstrap.Watcher.Watch(Watcher = new WatchFolder
+		{
+			Extension = "*.dll",
+			IncludeSubFolders = false,
+			Directory = Context.CarbonHarmonyMods,
+
+			OnFileCreated = (sender, file) =>
+			{
+				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
+				Load(file, "ExtensionManager.Created");
+			},
+			OnFileChanged = (sender, file) =>
+			{
+				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
+				Load(file, "ExtensionManager.Changed");
+			},
+			OnFileDeleted = (sender, file) =>
+			{
+				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
 				Load(file, "ExtensionManager.Deleted");
 			}
 		});
@@ -143,7 +172,7 @@ internal sealed class ExtensionManager : AddonManager
 			{
 				case ".dll":
 					IEnumerable<Type> types;
-					Assembly asm = _loader.Load(file, requester, _directories, blacklist, whitelist, AssemblyLoader.ProcessTypes.Extension)?.Assembly
+					Assembly asm = _loader.Load(file, requester, _directories, blacklist, whitelist, _currentProcessType)?.Assembly
 						?? throw new ReflectionTypeLoadException(null, null, null);
 
 					if (AssemblyManager.IsType<ICarbonExtension>(asm, out types))
@@ -341,11 +370,11 @@ internal sealed class ExtensionManager : AddonManager
 
 		foreach (var extension in extensions)
 		{
+			var extensionFile = Path.Combine(Context.CarbonExtensions, $"{extension.Key}.dll");
+			var arg = new CarbonEventArgs(extensionFile);
+
 			try
 			{
-				var extensionFile = Path.Combine(Context.CarbonExtensions, $"{extension.Key}.dll");
-				var arg = new CarbonEventArgs(extensionFile);
-
 				extension.Value.Awake(arg);
 				extension.Value.OnLoaded(arg);
 
@@ -354,6 +383,9 @@ internal sealed class ExtensionManager : AddonManager
 			}
 			catch (Exception e)
 			{
+				Carbon.Bootstrap.Events
+					.Trigger(CarbonEvent.ExtensionLoadFailed, arg);
+
 				Logger.Error($"Failed to instantiate extension from type '{extension.Value}'\n{e}\nInner: {e.InnerException}");
 				continue;
 			}
