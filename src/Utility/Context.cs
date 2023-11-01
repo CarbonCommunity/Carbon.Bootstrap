@@ -4,7 +4,7 @@ using Carbon.Extensions;
 
 /*
  *
- * Copyright (c) 2022-2023 Carbon Community 
+ * Copyright (c) 2022-2023 Carbon Community
  * All rights reserved.
  *
  */
@@ -18,7 +18,7 @@ internal sealed class Context
 
 	internal static readonly string
 		Game, GameManaged,
-		Carbon, CarbonData, CarbonExtensions, CarbonHooks,
+		Carbon, CarbonData, CarbonExtensions, CarbonHarmonyMods, CarbonHooks,
 		CarbonLib, CarbonLogs, CarbonManaged, CarbonModules, CarbonPlugins;
 
 	static Context()
@@ -47,6 +47,9 @@ internal sealed class Context
 
 			CarbonExtensions = CommandLineEx.GetArgumentResult("-carbon.extdir", Path.Combine(Carbon, "extensions"));
 			if (!Directory.Exists(CarbonExtensions)) Directory.CreateDirectory(CarbonExtensions);
+
+			CarbonHarmonyMods = CommandLineEx.GetArgumentResult("-carbon.harmonydir", Path.Combine(Carbon, "harmony"));
+			if (!Directory.Exists(CarbonHarmonyMods)) Directory.CreateDirectory(CarbonHarmonyMods);
 
 			CarbonHooks = Path.Combine(Carbon, "managed", "hooks");
 			if (!Directory.Exists(CarbonHooks)) Directory.CreateDirectory(CarbonHooks);
