@@ -14,7 +14,7 @@ using Utility;
 
 /*
  *
- * Copyright (c) 2022-2023 Carbon Community 
+ * Copyright (c) 2022-2023 Carbon Community
  * All rights reserved.
  *
  */
@@ -29,7 +29,7 @@ internal sealed class ModuleManager : AddonManager
 	/*
 	 * CARBON MODULES
 	 * API.Contracts.ICarbonModule
-	 * 
+	 *
 	 * An assembly to be considered as a Carbon Module must:
 	 *   1. Be optional
 	 *   2. Implement the ICarbonModule interface
@@ -47,6 +47,8 @@ internal sealed class ModuleManager : AddonManager
 	private static readonly string[] _references =
 	{
 		Context.CarbonModules,
+		Context.CarbonExtensions,
+		Context.CarbonHarmonyMods,
 		Context.CarbonManaged,
 		Context.CarbonLib,
 		Context.GameManaged
@@ -147,7 +149,7 @@ internal sealed class ModuleManager : AddonManager
 					{
 						Logger.Debug($"Loading module from file '{file}'");
 
-						var moduleTypes = new List<Type>();	
+						var moduleTypes = new List<Type>();
 
 						foreach (Type type in types)
 						{
