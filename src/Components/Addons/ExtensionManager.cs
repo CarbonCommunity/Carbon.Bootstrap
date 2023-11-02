@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using API.Assembly;
 using API.Events;
+using Carbon;
 using Facepunch.Extend;
 using Loaders;
 using Mono.Cecil;
@@ -17,7 +18,7 @@ using Logger = Utility.Logger;
 
 /*
  *
- * Copyright (c) 2022-2023 Carbon Community 
+ * Copyright (c) 2022-2023 Carbon Community
  * All rights reserved.
  *
  */
@@ -30,7 +31,7 @@ internal sealed class ExtensionManager : AddonManager
 	/*
 	 * CARBON EXTENSIONS
 	 * API.Contracts.ICarbonExtension
-	 * 
+	 *
 	 * An assembly to be considered as a Carbon Extension must:
 	 *   1. Implement the ICarbonExtension interface
 	 *   2. Must not change directly the world
@@ -43,14 +44,17 @@ internal sealed class ExtensionManager : AddonManager
 	 */
 
 	internal bool _hasLoaded;
+	internal AssemblyLoader.ProcessTypes _currentProcessType;
 
 	private readonly string[] _directories =
 	{
 		Context.CarbonExtensions,
+		Context.CarbonHarmonyMods,
 	};
 	private static readonly string[] _references =
-{
+	{
 		Context.CarbonExtensions,
+		Context.CarbonHarmonyMods,
 		Context.CarbonManaged,
 		Context.CarbonLib,
 		Context.GameManaged
@@ -111,15 +115,41 @@ internal sealed class ExtensionManager : AddonManager
 
 			OnFileCreated = (sender, file) =>
 			{
-				Reload(file, "ExtensionManager.Created");
+				_currentProcessType = AssemblyLoader.ProcessTypes.Extension;
+				Load(file, "ExtensionManager.Created");
 			},
 			OnFileChanged = (sender, file) =>
 			{
-				Reload(file, "ExtensionManager.Changed");
+				_currentProcessType = AssemblyLoader.ProcessTypes.Extension;
+				Load(file, "ExtensionManager.Changed");
 			},
 			OnFileDeleted = (sender, file) =>
 			{
-				Reload(file, "ExtensionManager.Deleted");
+				_currentProcessType = AssemblyLoader.ProcessTypes.Extension;
+				Load(file, "ExtensionManager.Deleted");
+			}
+		});
+
+		Carbon.Bootstrap.Watcher.Watch(Watcher = new WatchFolder
+		{
+			Extension = "*.dll",
+			IncludeSubFolders = false,
+			Directory = Context.CarbonHarmonyMods,
+
+			OnFileCreated = (sender, file) =>
+			{
+				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
+				Load(file, "ExtensionManager.Created");
+			},
+			OnFileChanged = (sender, file) =>
+			{
+				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
+				Load(file, "ExtensionManager.Changed");
+			},
+			OnFileDeleted = (sender, file) =>
+			{
+				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
+				Load(file, "ExtensionManager.Deleted");
 			}
 		});
 	}
@@ -142,7 +172,7 @@ internal sealed class ExtensionManager : AddonManager
 			{
 				case ".dll":
 					IEnumerable<Type> types;
-					Assembly asm = _loader.Load(file, requester, _directories, blacklist, whitelist)?.Assembly
+					Assembly asm = _loader.Load(file, requester, _directories, blacklist, whitelist, _currentProcessType)?.Assembly
 						?? throw new ReflectionTypeLoadException(null, null, null);
 
 					if (AssemblyManager.IsType<ICarbonExtension>(asm, out types))
@@ -267,7 +297,17 @@ internal sealed class ExtensionManager : AddonManager
 					}
 					else
 					{
-						var stream = new MemoryStream(Process(File.ReadAllBytes(file)));
+						var raw = File.ReadAllBytes(file);
+						var convert = Community.Runtime.Compat.AttemptOxideConvert(ref raw);
+
+						switch (convert)
+						{
+							case ConversionResult.Fail:
+								Logger.Warn($" >> Failed Oxide extension conversion for '{file}'");
+								return;
+						}
+
+						var stream = new MemoryStream(Process(raw));
 						var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(stream, new ReaderParameters { AssemblyResolver = new Resolver() });
 						var originalName = assembly.Name.Name;
 						assembly.Name = new AssemblyNameDefinition($"{assembly.Name.Name}_{Guid.NewGuid()}", assembly.Name.Version);
@@ -330,11 +370,11 @@ internal sealed class ExtensionManager : AddonManager
 
 		foreach (var extension in extensions)
 		{
+			var extensionFile = Path.Combine(Context.CarbonExtensions, $"{extension.Key}.dll");
+			var arg = new CarbonEventArgs(extensionFile);
+
 			try
 			{
-				var extensionFile = Path.Combine(Context.CarbonExtensions, $"{extension.Key}.dll");
-				var arg = new CarbonEventArgs(extensionFile);
-
 				extension.Value.Awake(arg);
 				extension.Value.OnLoaded(arg);
 
@@ -343,6 +383,9 @@ internal sealed class ExtensionManager : AddonManager
 			}
 			catch (Exception e)
 			{
+				Carbon.Bootstrap.Events
+					.Trigger(CarbonEvent.ExtensionLoadFailed, arg);
+
 				Logger.Error($"Failed to instantiate extension from type '{extension.Value}'\n{e}\nInner: {e.InnerException}");
 				continue;
 			}
