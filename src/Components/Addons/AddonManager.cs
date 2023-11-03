@@ -8,7 +8,7 @@ using Loaders;
 
 /*
  *
- * Copyright (c) 2022-2023 Carbon Community 
+ * Copyright (c) 2022-2023 Carbon Community
  * All rights reserved.
  *
  */
@@ -46,7 +46,10 @@ internal abstract class AddonManager : CarbonBehaviour, IAddonManager
 			{
 				foreach (var type in item.Types)
 				{
-					dictionary.Add(type,new KeyValuePair<string, byte[]>(item.File, item.PostProcessedRaw));
+					if (!dictionary.ContainsKey(type))
+					{
+						dictionary.Add(type, new KeyValuePair<string, byte[]>(item.File, item.PostProcessedRaw));
+					}
 				}
 			}
 
@@ -62,7 +65,10 @@ internal abstract class AddonManager : CarbonBehaviour, IAddonManager
 			{
 				foreach (var type in item.Shared)
 				{
-					dictionary.Add(type, item.File);
+					if (!dictionary.ContainsKey(type))
+					{
+						dictionary.Add(type, item.File);
+					}
 				}
 			}
 
