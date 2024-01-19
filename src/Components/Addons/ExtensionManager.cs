@@ -307,7 +307,7 @@ internal sealed class ExtensionManager : AddonManager
 								return;
 						}
 
-						var stream = new MemoryStream(Process(raw));
+						using var stream = new MemoryStream(Process(raw));
 						var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(stream, new ReaderParameters { AssemblyResolver = new Resolver() });
 						var originalName = assembly.Name.Name;
 						assembly.Name = new AssemblyNameDefinition($"{assembly.Name.Name}_{Guid.NewGuid()}", assembly.Name.Version);
