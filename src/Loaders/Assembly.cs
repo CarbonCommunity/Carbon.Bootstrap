@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using API.Assembly;
 using Carbon;
+using Carbon.Extensions;
 using Utility;
 using Logger = Utility.Logger;
 
@@ -122,6 +123,49 @@ internal sealed class AssemblyLoader : IDisposable
 		else
 		{
 			asm = Assembly.Load(raw);
+		}
+
+		switch (processType)
+		{
+			case ProcessTypes.HarmonyMod:
+				var hooks = new List<object>();
+
+				foreach (var type in asm.GetTypes())
+				{
+					if (type.GetInterfaces().Any(x => x.Name == "IHarmonyModHooks"))
+					{
+						try
+						{
+							var mod = Activator.CreateInstance(type);
+
+							if (mod == null)
+							{
+								Logger.Error($"Failed to create hook instance: Is null ({path} -> {requester})");
+							}
+							else
+							{
+								hooks.Add(mod);
+							}
+
+							try
+							{
+								type.GetMethod("OnLoaded").Invoke(mod, new object[1]);
+							}
+							catch (Exception arg)
+							{
+								Logger.Error($"Failed to create hook instance ({path} -> {requester})");
+							}
+						}
+						catch (Exception arg)
+						{
+							Logger.Error($"Failed to create hook instance ({path} -> {requester})");
+						}
+					}
+				}
+
+				Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {hooks.Count:n0} {hooks.Count.Plural("hook", "hooks")}");
+				Carbon.Components.Harmony.Mods.Add(asm, hooks);
+				break;
 		}
 
 		cache = new Item { Name = file, Raw = raw, Assembly = asm };
