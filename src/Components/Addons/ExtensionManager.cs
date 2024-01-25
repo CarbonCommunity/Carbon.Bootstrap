@@ -258,7 +258,7 @@ internal sealed class ExtensionManager : AddonManager
 	{
 		var item = Loaded.FirstOrDefault(x => x.Value.Key == file);
 
-		if (item.Key != null && Harmony.Mods.TryGetValue(item.Key.Assembly, out var mods))
+		if (item.Key != null && Harmony.ModHooks.TryGetValue(item.Key.Assembly, out var mods))
 		{
 			foreach (var mod in mods)
 			{
@@ -279,7 +279,7 @@ internal sealed class ExtensionManager : AddonManager
 
 			_loaded.RemoveAll(x => x.File == item.Value.Key);
 
-			Harmony.Mods.Remove(item.Key.Assembly);
+			Harmony.ModHooks.Remove(item.Key.Assembly);
 		}
 	}
 

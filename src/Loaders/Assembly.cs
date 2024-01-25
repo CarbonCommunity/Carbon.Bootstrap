@@ -164,7 +164,7 @@ internal sealed class AssemblyLoader : IDisposable
 				}
 
 				Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {hooks.Count:n0} {hooks.Count.Plural("hook", "hooks")}");
-				Carbon.Components.Harmony.Mods.Add(asm, hooks);
+				Carbon.Components.Harmony.ModHooks.Add(asm, hooks);
 				break;
 		}
 
