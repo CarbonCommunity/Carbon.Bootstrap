@@ -151,14 +151,14 @@ internal sealed class AssemblyLoader : IDisposable
 							{
 								type.GetMethod("OnLoaded").Invoke(mod, new object[1]);
 							}
-							catch (Exception arg)
+							catch (Exception ex)
 							{
-								Logger.Error($"Failed to create hook instance ({path} -> {requester})");
+								Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
 							}
 						}
-						catch (Exception arg)
+						catch (Exception ex)
 						{
-							Logger.Error($"Failed to create hook instance ({path} -> {requester})");
+							Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
 						}
 					}
 				}
