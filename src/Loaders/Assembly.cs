@@ -149,7 +149,7 @@ internal sealed class AssemblyLoader : IDisposable
 
 							try
 							{
-								type.GetMethod("OnLoaded").Invoke(mod, new object[1]);
+								// type.GetMethod("OnLoaded").Invoke(mod, new object[1]);
 							}
 							catch (Exception ex)
 							{
