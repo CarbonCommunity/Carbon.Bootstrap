@@ -8,6 +8,8 @@ using System.Runtime.CompilerServices;
 using API.Assembly;
 using API.Events;
 using Carbon;
+using Carbon.Components;
+using Carbon.Extensions;
 using Facepunch.Extend;
 using Loaders;
 using Mono.Cecil;
@@ -45,6 +47,8 @@ internal sealed class ExtensionManager : AddonManager
 
 	internal bool _hasLoaded;
 	internal AssemblyLoader.ProcessTypes _currentProcessType;
+
+	public WatchFolder HarmonyWatcher { get; internal set; }
 
 	private readonly string[] _directories =
 	{
@@ -118,19 +122,19 @@ internal sealed class ExtensionManager : AddonManager
 				_currentProcessType = AssemblyLoader.ProcessTypes.Extension;
 				Load(file, "ExtensionManager.Created");
 			},
-			OnFileChanged = (sender, file) =>
-			{
-				_currentProcessType = AssemblyLoader.ProcessTypes.Extension;
-				Load(file, "ExtensionManager.Changed");
-			},
-			OnFileDeleted = (sender, file) =>
-			{
-				_currentProcessType = AssemblyLoader.ProcessTypes.Extension;
-				Load(file, "ExtensionManager.Deleted");
-			}
+			// OnFileChanged = (sender, file) =>
+			// {
+			// 	_currentProcessType = AssemblyLoader.ProcessTypes.Extension;
+			// 	Load(file, "ExtensionManager.Changed");
+			// },
+			// OnFileDeleted = (sender, file) =>
+			// {
+			// 	_currentProcessType = AssemblyLoader.ProcessTypes.Extension;
+			// 	Load(file, "ExtensionManager.Deleted");
+			// }
 		});
 
-		Carbon.Bootstrap.Watcher.Watch(Watcher = new WatchFolder
+		Carbon.Bootstrap.Watcher.Watch(HarmonyWatcher = new WatchFolder
 		{
 			Extension = "*.dll",
 			IncludeSubFolders = false,
@@ -141,17 +145,20 @@ internal sealed class ExtensionManager : AddonManager
 				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
 				Load(file, "ExtensionManager.Created");
 			},
-			OnFileChanged = (sender, file) =>
-			{
-				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
-				Load(file, "ExtensionManager.Changed");
-			},
-			OnFileDeleted = (sender, file) =>
-			{
-				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
-				Load(file, "ExtensionManager.Deleted");
-			}
+			// OnFileChanged = (sender, file) =>
+			// {
+			// 	_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
+			// 	Load(file, "ExtensionManager.Changed");
+			// },
+			// OnFileDeleted = (sender, file) =>
+			// {
+			// 	_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
+			// 	Load(file, "ExtensionManager.Deleted");
+			// }
 		});
+
+		Watcher.Handler.EnableRaisingEvents = false;
+		HarmonyWatcher.Handler.EnableRaisingEvents = false;
 	}
 
 	[MethodImpl(MethodImplOptions.NoInlining)]
@@ -225,7 +232,7 @@ internal sealed class ExtensionManager : AddonManager
 		}
 		catch (ReflectionTypeLoadException)
 		{
-			Logger.Error($"Error while loading extension from '{file}'.");
+			Logger.Error($"Error while loading extension from '{file}' [{requester}]");
 			Logger.Error($"Either the file is corrupt or has an unsupported version.");
 			return null;
 		}
@@ -249,7 +256,31 @@ internal sealed class ExtensionManager : AddonManager
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public override void Unload(string file, string requester)
 	{
+		var item = Loaded.FirstOrDefault(x => x.Value.Key == file);
 
+		if (item.Key != null && Harmony.ModHooks.TryGetValue(item.Key.Assembly, out var mods))
+		{
+			foreach (var mod in mods)
+			{
+				try
+				{
+					// var type = mod.GetType();
+					// type.GetMethod("OnUnloaded").Invoke(mod, new object[1]);
+				}
+				catch (Exception ex)
+				{
+					Logger.Error($"Failed unloading HarmonyMod '{item.Value.Key}'", ex);
+				}
+			}
+
+			Logger.Log($"Unloaded '{Path.GetFileNameWithoutExtension(item.Value.Key)}' HarmonyMod with {mods.Count:n0} {mods.Count.Plural("hook", "hooks")}");
+
+			mods.Clear();
+
+			_loaded.RemoveAll(x => x.File == item.Value.Key);
+
+			Harmony.ModHooks.Remove(item.Key.Assembly);
+		}
 	}
 
 	[MethodImpl(MethodImplOptions.NoInlining)]
@@ -307,7 +338,7 @@ internal sealed class ExtensionManager : AddonManager
 								return;
 						}
 
-						var stream = new MemoryStream(Process(raw));
+						using var stream = new MemoryStream(Process(raw));
 						var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(stream, new ReaderParameters { AssemblyResolver = new Resolver() });
 						var originalName = assembly.Name.Name;
 						assembly.Name = new AssemblyNameDefinition($"{assembly.Name.Name}_{Guid.NewGuid()}", assembly.Name.Version);

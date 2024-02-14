@@ -13,7 +13,7 @@ using Utility;
 
 /*
  *
- * Copyright (c) 2022-2023 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -112,10 +112,7 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 
 		try
 		{
-			string identity = (string)AccessTools.TypeByName("ConVar.Server")
-				?.GetField("identity", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
-
-			_location = Path.Combine(Context.Game, "server", identity, "carbon.id");
+			_location = Path.Combine(Context.Game, "server", ConVar.Server.identity, "carbon.id");
 
 			if (File.Exists(_location))
 			{
