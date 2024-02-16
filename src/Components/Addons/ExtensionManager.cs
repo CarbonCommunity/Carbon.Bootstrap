@@ -264,8 +264,8 @@ internal sealed class ExtensionManager : AddonManager
 			{
 				try
 				{
-					var type = mod.GetType();
-					type.GetMethod("OnUnloaded").Invoke(mod, new object[1]);
+					// var type = mod.GetType();
+					// type.GetMethod("OnUnloaded").Invoke(mod, new object[1]);
 				}
 				catch (Exception ex)
 				{
