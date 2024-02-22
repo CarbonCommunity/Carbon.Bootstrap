@@ -170,6 +170,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"System.Globalization",
 		"System.Management",
 		"System.Net.Http",
+		"System.Memory",
 		"System.Runtime",
 		"System.Threading.Tasks.Extensions",
 		"System.Xml.Linq",
