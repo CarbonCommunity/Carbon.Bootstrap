@@ -35,6 +35,8 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 	private const string MeasurementID = "G-M7ZBRYS3X7";
 	private const string MeasurementSecret = "edBQH3_wRCWxZSzx5Y2IWA";
 
+	public bool Enabled => enabled;
+
 	public bool HasNewIdentifier
 	{ get; private set; }
 
