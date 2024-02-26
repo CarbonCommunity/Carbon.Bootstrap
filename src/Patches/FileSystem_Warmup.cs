@@ -4,7 +4,7 @@ using HarmonyLib;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -13,7 +13,7 @@ namespace Patches;
 
 internal static class __FileSystem_Warmup
 {
-	[HarmonyPatch(typeof(FileSystem_Warmup), methodName: "Run", new Type[] { typeof(string[]), typeof(Action<string>), typeof(string), typeof(int) })]
+	[HarmonyPatch(typeof(FileSystem_Warmup), methodName: nameof(FileSystem_Warmup.Run), new Type[] { typeof(string[]), typeof(Action<string>), typeof(string), typeof(int) })]
 	internal static class __Run
 	{
 		public static void Prefix()
