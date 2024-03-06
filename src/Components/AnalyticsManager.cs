@@ -246,9 +246,9 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 		body["client_id"] = ClientID;
 		body["non_personalized_ads"] = true;
 
-		if (Analytic.Metrics != null)
+		if (Analytics.Metrics != null)
 		{
-			foreach (var metric in Analytic.Metrics)
+			foreach (var metric in Analytics.Metrics)
 				event_parameters.Add(metric.Key, metric.Value);
 		}
 
