@@ -30,32 +30,23 @@ public sealed class Bootstrap
 	internal static HarmonyLib.Harmony Harmony
 	{ get => _harmonyInstance; }
 
+	internal static AnalyticsManager Analytics { get; private set; }
 
-	internal static AnalyticsManager Analytics
-	{ get => _gameObject.GetComponent<AnalyticsManager>(); }
+	internal static AssemblyManager AssemblyEx { get; private set; }
 
-	internal static AssemblyManager AssemblyEx
-	{ get => _gameObject.GetComponent<AssemblyManager>(); }
+	internal static CommandManager Commands { get; private set; }
 
-	internal static CommandManager Commands
-	{ get => _gameObject.GetComponent<CommandManager>(); }
+	internal static DownloadManager Downloader { get; private set; }
 
-	internal static DownloadManager Downloader
-	{ get => _gameObject.GetComponent<DownloadManager>(); }
+	internal static EventManager Events { get; private set; }
 
-	internal static EventManager Events
-	{ get => _gameObject.GetComponent<EventManager>(); }
-
-	internal static PermissionManager Permissions
-	{ get => _gameObject.GetComponent<PermissionManager>(); }
+	internal static PermissionManager Permissions { get; private set; }
 
 #if EXPERIMENTAL
-	internal static ThreadManager Threads
-	{ get => _gameObject.GetComponent<ThreadManager>(); }
+	internal static ThreadManager Threads { get; private set; }
 #endif
 
-	internal static FileWatcherManager Watcher
-	{ get => _gameObject.GetComponent<FileWatcherManager>(); }
+	internal static FileWatcherManager Watcher { get; private set; }
 
 
 	static Bootstrap()
@@ -86,17 +77,17 @@ public sealed class Bootstrap
 		UnityEngine.Object.DontDestroyOnLoad(_gameObject);
 
 		// top priority
-		_gameObject.AddComponent<CommandManager>();
-		_gameObject.AddComponent<EventManager>();
-		_gameObject.AddComponent<FileWatcherManager>();
+		Commands = _gameObject.AddComponent<CommandManager>();
+		Events = _gameObject.AddComponent<EventManager>();
+		Watcher = _gameObject.AddComponent<FileWatcherManager>();
 
 		// standard priority
-		_gameObject.AddComponent<AnalyticsManager>();
-		_gameObject.AddComponent<AssemblyManager>();
-		_gameObject.AddComponent<DownloadManager>();
+		Analytics = _gameObject.AddComponent<AnalyticsManager>();
+		AssemblyEx = _gameObject.AddComponent<AssemblyManager>();
+		Downloader = _gameObject.AddComponent<DownloadManager>();
 
 #if EXPERIMENTAL
-		_gameObject.AddComponent<ThreadManager>();
+		Threads = _gameObject.AddComponent<ThreadManager>();
 
 		Events.Subscribe(CarbonEvent.FileSystemWarmupComplete, x =>
 		{

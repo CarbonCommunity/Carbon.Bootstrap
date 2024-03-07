@@ -3,7 +3,7 @@ using HarmonyLib;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -13,7 +13,7 @@ namespace Patches;
 
 internal static class __RCon
 {
-	[HarmonyPatch(typeof(RCon), methodName: "OnCommand")]
+	[HarmonyPatch(typeof(RCon), methodName: nameof(RCon.OnCommand))]
 	internal static class __OnCommand
 	{
 		[HarmonyPriority(int.MaxValue)]

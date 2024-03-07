@@ -1,16 +1,14 @@
-﻿extern alias MonoCecilStandalone;
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Facepunch.Extend;
-using MonoCecilStandalone::Mono.Cecil;
+using Mono.Cecil;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
