@@ -31,17 +31,13 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 	public IReadOnlyList<string> RefWhitelist
 	{ get => _whitelistLibs; }
 
-	public IAddonManager Components
-	{ get => gameObject.GetComponent<ComponentManager>(); }
+	public IAddonManager Components { get; private set; }
 
-	public IAddonManager Extensions
-	{ get => gameObject.GetComponent<ExtensionManager>(); }
+	public IAddonManager Extensions { get; private set; }
 
-	public IAddonManager Hooks
-	{ get => gameObject.GetComponent<HookManager>(); }
+	public IAddonManager Hooks { get; private set; }
 
-	public IAddonManager Modules
-	{ get => gameObject.GetComponent<ModuleManager>(); }
+	public IAddonManager Modules { get; private set; }
 
 #if EXPERIMENTAL
 	public IAddonManager Plugins
@@ -52,10 +48,11 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 	{
 		_library = LibraryLoader.GetInstance();
 
-		gameObject.AddComponent<ComponentManager>();
-		gameObject.AddComponent<ExtensionManager>();
-		gameObject.AddComponent<HookManager>();
-		gameObject.AddComponent<ModuleManager>();
+		gameObject.AddComponent<EventManager>();
+		Components = gameObject.AddComponent<ComponentManager>();
+		Extensions = gameObject.AddComponent<ExtensionManager>();
+		Hooks = gameObject.AddComponent<HookManager>();
+		Modules = gameObject.AddComponent<ModuleManager>();
 		gameObject.AddComponent<CompatManager>();
 
 #if EXPERIMENTAL
@@ -170,6 +167,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"System.Globalization",
 		"System.Management",
 		"System.Net.Http",
+		"System.Memory",
 		"System.Runtime",
 		"System.Threading.Tasks.Extensions",
 		"System.Xml.Linq",
