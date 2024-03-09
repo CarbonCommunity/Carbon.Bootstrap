@@ -6,7 +6,7 @@ using Utility;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -18,8 +18,6 @@ namespace Components;
 internal sealed class EventManager : CarbonBehaviour, IEventManager
 {
 	private readonly Dictionary<CarbonEvent, Delegate> events = new();
-
-
 
 	public void Subscribe(CarbonEvent eventId, Action<EventArgs> callback)
 	{

@@ -26,6 +26,7 @@ using Logger = Utility.Logger;
  */
 
 namespace Components;
+
 #pragma warning disable IDE0051
 
 internal sealed class ExtensionManager : AddonManager

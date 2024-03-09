@@ -78,7 +78,7 @@ internal sealed class ModuleManager : AddonManager
 							case ".dll":
 								if (Path.GetFileNameWithoutExtension(file) == name.Name)
 								{
-									_cache.Add(name.Name, assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(file));
+									_cache.Add(name.Name, assembly = AssemblyDefinition.ReadAssembly(file));
 									found = true;
 								}
 								break;
@@ -302,7 +302,7 @@ internal sealed class ModuleManager : AddonManager
 					else
 					{
 						var stream = new MemoryStream(Process(File.ReadAllBytes(file)));
-						var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(stream, new ReaderParameters { AssemblyResolver = new Resolver() });
+						var assembly = AssemblyDefinition.ReadAssembly(stream, new ReaderParameters { AssemblyResolver = new Resolver() });
 						var originalName = assembly.Name.Name;
 						// var originalVersion = assembly.Name.Version;
 						// assembly.Name.Version = new Version(originalVersion.Major, originalVersion.Minor, originalVersion.Build + Iterations++, originalVersion.Revision);
