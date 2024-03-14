@@ -6,7 +6,9 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using API.Abstracts;
 using API.Analytics;
-using Facepunch.Rust;
+using Carbon.Components;
+using Carbon.Pooling;
+using Facepunch;
 using HarmonyLib;
 using Newtonsoft.Json;
 using Utility;
@@ -28,8 +30,12 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 	private float _lastEngagement;
 	private static string _location;
 
+	private string MeasurementQuery;
+	private const string MeasurementEntrypoint = "https://www.google-analytics.com/mp/collect";
 	private const string MeasurementID = "G-M7ZBRYS3X7";
 	private const string MeasurementSecret = "edBQH3_wRCWxZSzx5Y2IWA";
+
+	public bool Enabled => enabled;
 
 	public bool HasNewIdentifier
 	{ get; private set; }
@@ -167,6 +173,8 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 			{ "branch", Branch },
 			{ "platform", Platform },
 		};
+
+		MeasurementQuery = $"{MeasurementEntrypoint}?api_secret={MeasurementSecret}&measurement_id={MeasurementID}";
 	}
 
 	private void Update()
@@ -184,8 +192,8 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 	public void LogEvent(string eventName)
 		=> SendEvent(eventName);
 
-	public void LogEvent(string eventName, IDictionary<string, object> segments = null, IDictionary<string, object> metrics = null)
-		=> SendMPEvent(eventName, segments, metrics);
+	public void LogEvents(string eventName)
+		=> SendMPEvent(eventName);
 
 	public void SendEvent(string eventName)
 	{
@@ -215,71 +223,69 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 		SendRequest($"{url}?{query}&_z={Util.GetRandomNumber(10)}");
 	}
 
-	private void SendMPEvent(string eventName, IDictionary<string, object> segments, IDictionary<string, object> metrics)
+	private void SendMPEvent(string eventName)
 	{
 		if (!enabled) return;
 
-		float delta = Math.Min(Math.Max(
-			UnityEngine.Time.realtimeSinceStartup - _lastEngagement, 0f), 1800f);
+		var delta = Math.Min(Math.Max( UnityEngine.Time.realtimeSinceStartup - _lastEngagement, 0f), 1800f);
 		_lastEngagement = UnityEngine.Time.realtimeSinceStartup;
 
-		string url = "https://www.google-analytics.com/mp/collect";
-		string query = $"api_secret={MeasurementSecret}&measurement_id={MeasurementID}";
-		Dictionary<string, object> user_properties = new();
+		var segment_cache = Pool.GetList<Dictionary<string, object>>();
+		var user_properties = PoolEx.GetDictionary<string, object>();
+		var event_parameters = PoolEx.GetDictionary<string, object>();
+		var body = PoolEx.GetDictionary<string, object>();
+		var events = Pool.GetList<Dictionary<string, object>>();
+		var events_entry = PoolEx.GetDictionary<string, object>();
 
-		Dictionary<string, object> event_parameters = new() {
 #if DEBUG_VERBOSE
-			{ "debug_mode", 1 },
+		event_parameters["debug_mode"] = 1;
 #endif
-			{ "session_id", SessionID },
-			{ "engagement_time_msec", Math.Round(delta * 1000f) },
-		};
+		event_parameters["session_id"] = SessionID;
+		event_parameters["engagement_time_msec"] = Math.Round(delta * 1000f);
 
-		Dictionary<string, object> body = new Dictionary<string, object>
-		{
-			{ "client_id", ClientID },
-			{ "non_personalized_ads", true },
-		};
+		body["client_id"] = ClientID;
+		body["non_personalized_ads"] = true;
 
-		if (metrics != null)
+		if (Analytics.Metrics != null)
 		{
-			foreach (var metric in metrics)
+			foreach (var metric in Analytics.Metrics)
 				event_parameters.Add(metric.Key, metric.Value);
 		}
 
-		List<Dictionary<string, object>> @events = new List<Dictionary<string, object>> {
-			new Dictionary<string, object> {
-				{ "name", eventName },
-				{ "params", event_parameters }
-			}
-		};
+		events_entry["name"] = eventName;
+		events_entry["params"] = event_parameters;
+		events.Add(events_entry);
 
-		body.Add("events", value: @events);
+		body.Add("events", value: events);
 
-		if (segments != null)
+		if (Segments != null)
 		{
-			foreach (var segment in segments)
+			foreach (var segment in Segments)
 			{
-				user_properties.Add(segment.Key, new Dictionary<string, object> {
-					{"value", segment.Value}
-				});
+				var tempDictionary = PoolEx.GetDictionary<string, object>();
+				tempDictionary["value"] = segment.Value;
+
+				user_properties[segment.Key] = tempDictionary;
+
+				segment_cache.Add(tempDictionary);
 			}
 			body.Add("user_properties", user_properties);
 		}
 
-		SendRequest($"{url}?{query}", JsonConvert.SerializeObject(body));
+		SendRequest(MeasurementQuery, JsonConvert.SerializeObject(body));
 
-		metrics?.Clear();
-		user_properties.Clear();
-		event_parameters.Clear();
-		@events.Clear();
-		body.Clear();
+		foreach (var cache in segment_cache)
+		{
+			var cacheInstance = cache;
+			PoolEx.FreeDictionary(ref cacheInstance);
+		}
 
-		metrics = null;
-		user_properties = null;
-		event_parameters = null;
-		@events = null;
-		body = null;
+		Pool.FreeList(ref events);
+		Pool.FreeList(ref segment_cache);
+		PoolEx.FreeDictionary(ref events_entry);
+		PoolEx.FreeDictionary(ref user_properties);
+		PoolEx.FreeDictionary(ref event_parameters);
+		PoolEx.FreeDictionary(ref body);
 	}
 
 	private void SendRequest(string url, string body = null)

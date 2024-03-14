@@ -4,7 +4,7 @@ using HarmonyLib;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -13,7 +13,7 @@ namespace Patches;
 
 internal static class __Bootstrap
 {
-	[HarmonyPatch(typeof(Bootstrap), methodName: "StartupShared")]
+	[HarmonyPatch(typeof(Bootstrap), methodName: nameof(Bootstrap.StartupShared))]
 	internal static class __StartupShared
 	{
 		public static void Prefix()
@@ -37,7 +37,7 @@ internal static class __Bootstrap
 				while (!ArePluginsReady) await Task.Delay(1000);
 				return;
 			});
-			
+
 			WaitForPlugins.Wait();
 			*/
 		}
