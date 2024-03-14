@@ -51,6 +51,8 @@ public sealed class Bootstrap
 
 	static Bootstrap()
 	{
+		Carbon.Components.ConVarSnapshots.TakeSnapshot();
+
 		identifier = $"{Guid.NewGuid():N}";
 		Logger.Warn($"Using '{identifier}' as runtime namespace");
 		assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
