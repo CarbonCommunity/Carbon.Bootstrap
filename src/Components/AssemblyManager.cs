@@ -202,6 +202,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"Facepunch.Unity",
 		"Facepunch.UnityEngine",
 		"Facepunch.Nexus",
+		"Facepunch.Ping",
 
 		"Rust.Data",
 		"Rust.FileSystem",
