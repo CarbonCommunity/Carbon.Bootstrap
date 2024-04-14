@@ -8,7 +8,7 @@ using API.Contracts;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -90,11 +90,11 @@ internal sealed class DownloadManager : CarbonBehaviour, IDownloadManager
 		DownloadItem job = new DownloadItem()
 		{
 			URL = url,
-			Callback = (id, bytes) => tcs.SetResult(bytes),
+			Callback = (_, bytes) => tcs.SetResult(bytes),
 			Identifier = $"{Guid.NewGuid():N}",
 		};
 
-		Utility.Logger.Debug($"New download request with token '{job.Identifier}': {job.URL}");
+		Utility.Logger.Debug($"Download request for '{job.URL}'");
 		_donwloadQueue.Enqueue(job);
 		byte[] bytes = await tcs.Task;
 
