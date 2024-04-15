@@ -5,7 +5,7 @@ using System.Reflection;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -36,9 +36,9 @@ internal sealed class Logger
 		string formatted = severity switch
 		{
 			Severity.None => $"{message}",
-			Severity.Notice => $"[i] {message}",
+			Severity.Notice => $"{message}",
 			Severity.Warning => $"[w] {message}",
-			Severity.Error => $"[e] {message}",
+			Severity.Error => $"[e] {message}{(ex == null ? string.Empty : $" ({ex.Message})\n{ex.StackTrace}")}",
 			Severity.Debug => $"[d] {message}",
 			_ => throw new Exception($"Severity {severity} not implemented.")
 		};
