@@ -5,7 +5,9 @@ using System.Linq;
 using System.Reflection;
 using API.Assembly;
 using Carbon;
+using Carbon.Components;
 using Carbon.Extensions;
+using Carbon.Profiler;
 using Utility;
 using Logger = Utility.Logger;
 
@@ -128,6 +130,8 @@ internal sealed class AssemblyLoader : IDisposable
 		switch (processType)
 		{
 			case ProcessTypes.HarmonyMod:
+				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, asm, Path.GetFileNameWithoutExtension(file));
+
 				var hooks = new List<object>();
 
 				foreach (var type in asm.GetTypes())
@@ -165,6 +169,10 @@ internal sealed class AssemblyLoader : IDisposable
 
 				Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {hooks.Count:n0} {hooks.Count.Plural("hook", "hooks")}");
 				Carbon.Components.Harmony.ModHooks.Add(asm, hooks);
+				break;
+
+			case ProcessTypes.Extension:
+				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, asm, Path.GetFileNameWithoutExtension(file));
 				break;
 		}
 
