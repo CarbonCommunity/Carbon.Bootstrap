@@ -7,6 +7,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using API.Assembly;
 using API.Events;
+using Carbon.Components;
+using Carbon.Profiler;
 using Facepunch.Extend;
 using Loaders;
 using Mono.Cecil;
@@ -142,6 +144,9 @@ internal sealed class ModuleManager : AddonManager
 				case ".dll":
 					IEnumerable<Type> types;
 					IAssemblyCache cache = _loader.Load(file, requester, _directories, blacklist, whitelist);
+
+					MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Module, cache.Assembly, Path.GetFileNameWithoutExtension(file));
+
 					Assembly asm = cache?.Assembly
 						?? throw new ReflectionTypeLoadException(null, null, null);
 
@@ -336,6 +341,8 @@ internal sealed class ModuleManager : AddonManager
 
 			var bytes = memoryStream.ToArray();
 			var processedAssembly = Assembly.Load(bytes);
+
+			MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Module, processedAssembly, Path.GetFileNameWithoutExtension(file));
 
 			if (AssemblyManager.IsType<ICarbonModule>(processedAssembly, out var types))
 			{
