@@ -7,7 +7,7 @@ using Utility;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -64,10 +64,11 @@ internal sealed class ThreadManager : CarbonBehaviour, IThreadManager, IDisposab
 
 	private Thread CreateThread()
 	{
-		Thread thread = new Thread(new ThreadStart(ThreadManager.DoWork))
+		Thread thread = new Thread(DoWork)
 		{
 			Name = "Carbon.Thread",
-			Priority = ThreadPriority.Lowest
+			Priority = ThreadPriority.Lowest,
+			IsBackground = true
 		};
 
 		Logger.Debug($"A new thread created with ID {thread.ManagedThreadId}");
