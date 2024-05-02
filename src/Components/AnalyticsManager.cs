@@ -114,7 +114,7 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 
 	private static readonly Lazy<Identity> _serverInfo = new(() =>
 	{
-		Identity info;
+		Identity info = default;
 
 		try
 		{
