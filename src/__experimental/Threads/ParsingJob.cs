@@ -8,7 +8,7 @@ using Utility;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -52,10 +52,7 @@ public class ScriptParserJob : IThreadJob
 	public Result DoWork()
 	{
 		_result.Output = _contents
-			.Replace("PluginTimers", "Timers")
-			.Replace("using Harmony;", "using HarmonyLib;")
-			.Replace("HarmonyInstance.Create", "new Harmony")
-			.Replace("HarmonyInstance", "Harmony");
+			.Replace("PluginTimers", "Timers");
 
 		return _result;
 	}
