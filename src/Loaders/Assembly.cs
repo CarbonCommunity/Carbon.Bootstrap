@@ -42,7 +42,8 @@ internal sealed class AssemblyLoader : IDisposable
 	{
 		Default,
 		Extension,
-		HarmonyMod
+		HarmonyMod,
+		HarmonyModHotload
 	}
 
 	internal IAssemblyCache Load(string file, string requester,
@@ -95,6 +96,7 @@ internal sealed class AssemblyLoader : IDisposable
 				break;
 
 			case ProcessTypes.HarmonyMod:
+			case ProcessTypes.HarmonyModHotload:
 				Community.Runtime.Compat.ConvertHarmonyMod(ref raw);
 
 				if (raw == null)
@@ -130,9 +132,15 @@ internal sealed class AssemblyLoader : IDisposable
 		switch (processType)
 		{
 			case ProcessTypes.HarmonyMod:
+			case ProcessTypes.HarmonyModHotload:
 				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, asm, Path.GetFileNameWithoutExtension(file));
 
 				var hooks = new List<object>();
+
+				if (processType == ProcessTypes.HarmonyModHotload)
+				{
+					Harmony.PatchAll(asm);
+				}
 
 				foreach (var type in asm.GetTypes())
 				{
@@ -151,13 +159,16 @@ internal sealed class AssemblyLoader : IDisposable
 								hooks.Add(mod);
 							}
 
-							try
+							if (processType == ProcessTypes.HarmonyModHotload)
 							{
-								// type.GetMethod("OnLoaded").Invoke(mod, new object[1]);
-							}
-							catch (Exception ex)
-							{
-								Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
+								try
+								{
+									type.GetMethod("OnLoaded")?.Invoke(mod, new object[1]);
+								}
+								catch (Exception ex)
+								{
+									Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
+								}
 							}
 						}
 						catch (Exception ex)
@@ -174,6 +185,10 @@ internal sealed class AssemblyLoader : IDisposable
 			case ProcessTypes.Extension:
 				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, asm, Path.GetFileNameWithoutExtension(file));
 				break;
+			case ProcessTypes.Default:
+				break;
+			default:
+				throw new ArgumentOutOfRangeException(nameof(processType), processType, null);
 		}
 
 		cache = new Item { Name = file, Raw = raw, Assembly = asm };

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using Carbon.Extensions;
 
 /*
  *
@@ -38,7 +39,7 @@ internal sealed class Logger
 			Severity.None => $"{message}",
 			Severity.Notice => $"{message}",
 			Severity.Warning => $"[w] {message}",
-			Severity.Error => $"[e] {message}{(ex == null ? string.Empty : $" ({ex.Message})\n{ex.StackTrace}")}",
+			Severity.Error => $"[e] {message}{(ex == null ? string.Empty : $" ({ex.Message})\n{ex.GetFullStackTrace(false)}")}",
 			Severity.Debug => $"[d] {message}",
 			_ => throw new Exception($"Severity {severity} not implemented.")
 		};
