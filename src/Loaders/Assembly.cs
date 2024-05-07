@@ -137,10 +137,7 @@ internal sealed class AssemblyLoader : IDisposable
 
 				var hooks = new List<object>();
 
-				if (processType == ProcessTypes.HarmonyModHotload)
-				{
-					Harmony.PatchAll(asm);
-				}
+				Harmony.PatchAll(asm);
 
 				foreach (var type in asm.GetTypes())
 				{
@@ -185,10 +182,6 @@ internal sealed class AssemblyLoader : IDisposable
 			case ProcessTypes.Extension:
 				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, asm, Path.GetFileNameWithoutExtension(file));
 				break;
-			case ProcessTypes.Default:
-				break;
-			default:
-				throw new ArgumentOutOfRangeException(nameof(processType), processType, null);
 		}
 
 		cache = new Item { Name = file, Raw = raw, Assembly = asm };
@@ -200,8 +193,7 @@ internal sealed class AssemblyLoader : IDisposable
 
 	internal IAssemblyCache ReadFromCache(string name)
 	{
-		Item item = _cache.Select(x => x.Value).LastOrDefault(x => x.Name == name);
-		return item ?? default;
+		return _cache.Select(x => x.Value).LastOrDefault(x => x.Name == name);
 	}
 
 	internal static byte[] Package(IReadOnlyList<byte> a, IReadOnlyList<byte> b, int c = 0)
