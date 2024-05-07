@@ -143,7 +143,7 @@ internal sealed class ExtensionManager : AddonManager
 
 			OnFileCreated = (sender, file) =>
 			{
-				if (!Community.Runtime.Config.Watchers.HarmonyWatchers)
+				if (!HarmonyWatcher.InitialEvent && !Community.Runtime.Config.Watchers.HarmonyWatchers)
 				{
 					return;
 				}
@@ -156,7 +156,7 @@ internal sealed class ExtensionManager : AddonManager
 				{
 					_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyModHotload;
 				}
-
+ 
 				Load(file, "ExtensionManager.Created");
 			},
 			OnFileChanged = (sender, file) =>
