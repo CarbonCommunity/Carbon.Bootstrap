@@ -143,19 +143,45 @@ internal sealed class ExtensionManager : AddonManager
 
 			OnFileCreated = (sender, file) =>
 			{
-				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
+				if (!HarmonyWatcher.InitialEvent && !Community.Runtime.Config.Watchers.HarmonyWatchers)
+				{
+					return;
+				}
+
+				if (HarmonyWatcher.InitialEvent)
+				{
+					_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
+				}
+				else
+				{
+					_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyModHotload;
+				}
+ 
 				Load(file, "ExtensionManager.Created");
 			},
-			// OnFileChanged = (sender, file) =>
-			// {
-			// 	_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
-			// 	Load(file, "ExtensionManager.Changed");
-			// },
-			// OnFileDeleted = (sender, file) =>
-			// {
-			// 	_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
-			// 	Load(file, "ExtensionManager.Deleted");
-			// }
+			OnFileChanged = (sender, file) =>
+			{
+				if (!Community.Runtime.Config.Watchers.HarmonyWatchers)
+				{
+					return;
+				}
+
+				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
+				Unload(file, "ExtensionManager.HotloadUnload");
+
+				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyModHotload;
+				Load(file, "ExtensionManager.Changed");
+			},
+			OnFileDeleted = (sender, file) =>
+			{
+				if (!Community.Runtime.Config.Watchers.HarmonyWatchers)
+				{
+					return;
+				}
+
+				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
+				Unload(file, "ExtensionManager.Deleted");
+			}
 		});
 
 		Watcher.Handler.EnableRaisingEvents = false;
@@ -216,10 +242,6 @@ internal sealed class ExtensionManager : AddonManager
 							}
 						}
 					}
-					else
-					{
-						throw new Exception("Unsupported assembly type");
-					}
 
 					return asm;
 
@@ -259,29 +281,30 @@ internal sealed class ExtensionManager : AddonManager
 	{
 		var item = Loaded.FirstOrDefault(x => x.Value.Key == file);
 
-		if (item.Key != null && Harmony.ModHooks.TryGetValue(item.Key.Assembly, out var mods))
+		if (item.Key == null || !Harmony.ModHooks.TryGetValue(item.Key.Assembly, out var mods)) return;
+
+		foreach (var mod in mods)
 		{
-			foreach (var mod in mods)
+			try
 			{
-				try
-				{
-					// var type = mod.GetType();
-					// type.GetMethod("OnUnloaded").Invoke(mod, new object[1]);
-				}
-				catch (Exception ex)
-				{
-					Logger.Error($"Failed unloading HarmonyMod '{item.Value.Key}'", ex);
-				}
+				mod.GetType().GetMethod("OnUnloaded").Invoke(mod, new object[1]);
 			}
-
-			Logger.Log($"Unloaded '{Path.GetFileNameWithoutExtension(item.Value.Key)}' HarmonyMod with {mods.Count:n0} {mods.Count.Plural("hook", "hooks")}");
-
-			mods.Clear();
-
-			_loaded.RemoveAll(x => x.File == item.Value.Key);
-
-			Harmony.ModHooks.Remove(item.Key.Assembly);
+			catch (Exception ex)
+			{
+				Logger.Error($"Failed unloading HarmonyMod '{item.Value.Key}'", ex);
+			}
 		}
+
+		Harmony.UnpatchAll(item.Key.Assembly.GetName().Name);
+
+		Logger.Log(
+			$"Unloaded '{Path.GetFileNameWithoutExtension(item.Value.Key)}' HarmonyMod with {mods.Count:n0} {mods.Count.Plural("hook", "hooks")}");
+
+		mods.Clear();
+
+		_loaded.RemoveAll(x => x.File == item.Value.Key);
+
+		Harmony.ModHooks.Remove(item.Key.Assembly);
 	}
 
 	[MethodImpl(MethodImplOptions.NoInlining)]

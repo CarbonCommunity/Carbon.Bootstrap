@@ -42,7 +42,8 @@ internal sealed class AssemblyLoader : IDisposable
 	{
 		Default,
 		Extension,
-		HarmonyMod
+		HarmonyMod,
+		HarmonyModHotload
 	}
 
 	internal IAssemblyCache Load(string file, string requester,
@@ -95,6 +96,7 @@ internal sealed class AssemblyLoader : IDisposable
 				break;
 
 			case ProcessTypes.HarmonyMod:
+			case ProcessTypes.HarmonyModHotload:
 				Community.Runtime.Compat.ConvertHarmonyMod(ref raw);
 
 				if (raw == null)
@@ -130,9 +132,12 @@ internal sealed class AssemblyLoader : IDisposable
 		switch (processType)
 		{
 			case ProcessTypes.HarmonyMod:
+			case ProcessTypes.HarmonyModHotload:
 				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, asm, Path.GetFileNameWithoutExtension(file));
 
 				var hooks = new List<object>();
+
+				Harmony.PatchAll(asm);
 
 				foreach (var type in asm.GetTypes())
 				{
@@ -151,13 +156,16 @@ internal sealed class AssemblyLoader : IDisposable
 								hooks.Add(mod);
 							}
 
-							try
+							if (processType == ProcessTypes.HarmonyModHotload)
 							{
-								// type.GetMethod("OnLoaded").Invoke(mod, new object[1]);
-							}
-							catch (Exception ex)
-							{
-								Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
+								try
+								{
+									type.GetMethod("OnLoaded")?.Invoke(mod, new object[1]);
+								}
+								catch (Exception ex)
+								{
+									Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
+								}
 							}
 						}
 						catch (Exception ex)
@@ -185,8 +193,7 @@ internal sealed class AssemblyLoader : IDisposable
 
 	internal IAssemblyCache ReadFromCache(string name)
 	{
-		Item item = _cache.Select(x => x.Value).LastOrDefault(x => x.Name == name);
-		return item ?? default;
+		return _cache.Select(x => x.Value).LastOrDefault(x => x.Name == name);
 	}
 
 	internal static byte[] Package(IReadOnlyList<byte> a, IReadOnlyList<byte> b, int c = 0)
