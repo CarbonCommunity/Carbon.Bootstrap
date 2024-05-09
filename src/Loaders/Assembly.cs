@@ -38,15 +38,10 @@ internal sealed class AssemblyLoader : IDisposable
 		Context.CarbonExtensions,
 	};
 
-	public enum ProcessTypes
-	{
-		Default,
-		Extension,
-		HarmonyMod
-	}
+
 
 	internal IAssemblyCache Load(string file, string requester,
-		string[] directories, IReadOnlyList<string> blackList, IReadOnlyList<string> whiteList, ProcessTypes processType = ProcessTypes.Default)
+		string[] directories, IReadOnlyList<string> blackList, IReadOnlyList<string> whiteList, IExtensionManager.ExtensionTypes extensionType = IExtensionManager.ExtensionTypes.Default)
 	{
 		// normalize filename
 		file = Path.GetFileName(file);
@@ -81,9 +76,9 @@ internal sealed class AssemblyLoader : IDisposable
 
 		byte[] raw = File.ReadAllBytes(path);
 
-		switch (processType)
+		switch (extensionType)
 		{
-			case ProcessTypes.Extension:
+			case IExtensionManager.ExtensionTypes.Extension:
 				ConversionResult oxideConvert = Community.Runtime.Compat.AttemptOxideConvert(ref raw);
 
 				switch (oxideConvert)
@@ -94,7 +89,8 @@ internal sealed class AssemblyLoader : IDisposable
 				}
 				break;
 
-			case ProcessTypes.HarmonyMod:
+			case IExtensionManager.ExtensionTypes.HarmonyMod:
+			case IExtensionManager.ExtensionTypes.HarmonyModHotload:
 				Community.Runtime.Compat.ConvertHarmonyMod(ref raw);
 
 				if (raw == null)
@@ -127,51 +123,56 @@ internal sealed class AssemblyLoader : IDisposable
 			asm = Assembly.Load(raw);
 		}
 
-		switch (processType)
+		switch (extensionType)
 		{
-			case ProcessTypes.HarmonyMod:
-				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, asm, Path.GetFileNameWithoutExtension(file));
+			case IExtensionManager.ExtensionTypes.HarmonyMod:
+			case IExtensionManager.ExtensionTypes.HarmonyModHotload:
+				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, asm, Path.GetFileNameWithoutExtension(file), true);
 
 				var hooks = new List<object>();
 
+				var patchCount = Harmony.PatchAll(asm);
+
 				foreach (var type in asm.GetTypes())
 				{
-					if (type.GetInterfaces().Any(x => x.Name == "IHarmonyModHooks"))
+					if (type.GetInterfaces().All(x => x.Name != "IHarmonyModHooks")) continue;
+
+					try
 					{
-						try
+						var mod = Activator.CreateInstance(type);
+
+						if (mod == null)
 						{
-							var mod = Activator.CreateInstance(type);
+							Logger.Error($"Failed to create hook instance: Is null ({path} -> {requester})");
+						}
+						else
+						{
+							hooks.Add(mod);
+						}
 
-							if (mod == null)
-							{
-								Logger.Error($"Failed to create hook instance: Is null ({path} -> {requester})");
-							}
-							else
-							{
-								hooks.Add(mod);
-							}
-
+						if (extensionType == IExtensionManager.ExtensionTypes.HarmonyModHotload)
+						{
 							try
 							{
-								// type.GetMethod("OnLoaded").Invoke(mod, new object[1]);
+								type.GetMethod("OnLoaded").Invoke(mod, new object[1]);
 							}
 							catch (Exception ex)
 							{
 								Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
 							}
 						}
-						catch (Exception ex)
-						{
-							Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
-						}
+					}
+					catch (Exception ex)
+					{
+						Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
 					}
 				}
 
-				Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {hooks.Count:n0} {hooks.Count.Plural("hook", "hooks")}");
-				Carbon.Components.Harmony.ModHooks.Add(asm, hooks);
+				Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {patchCount:n0} {patchCount.Plural("patch", "patches")}");
+				Harmony.ModHooks.Add(asm, hooks);
 				break;
 
-			case ProcessTypes.Extension:
+			case IExtensionManager.ExtensionTypes.Extension:
 				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, asm, Path.GetFileNameWithoutExtension(file));
 				break;
 		}
@@ -185,8 +186,7 @@ internal sealed class AssemblyLoader : IDisposable
 
 	internal IAssemblyCache ReadFromCache(string name)
 	{
-		Item item = _cache.Select(x => x.Value).LastOrDefault(x => x.Name == name);
-		return item ?? default;
+		return _cache.Select(x => x.Value).LastOrDefault(x => x.Name == name);
 	}
 
 	internal static byte[] Package(IReadOnlyList<byte> a, IReadOnlyList<byte> b, int c = 0)
