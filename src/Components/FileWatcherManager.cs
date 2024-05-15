@@ -8,7 +8,7 @@ using UnityEngine;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -29,6 +29,7 @@ internal sealed class FileWatcherManager : CarbonBehaviour, IFileWatcherManager,
 		foreach (WatchFolder item in _watchlist)
 		{
 			item.TriggerAll(WatcherChangeTypes.Created);
+			item.InitialEvent = false;
 		}
 	}
 
