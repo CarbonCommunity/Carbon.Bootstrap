@@ -33,7 +33,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 
 	public IAddonManager Components { get; private set; }
 
-	public IAddonManager Extensions { get; private set; }
+	public IExtensionManager Extensions { get; private set; }
 
 	public IAddonManager Hooks { get; private set; }
 

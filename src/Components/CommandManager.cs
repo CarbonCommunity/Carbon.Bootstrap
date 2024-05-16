@@ -10,7 +10,7 @@ using Logger = Utility.Logger;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -139,7 +139,7 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 		}
 		catch (Exception ex)
 		{
-			Debug.LogError($"Failed command execution authentication for command '{command}': {ex}");
+			Logger.Error($"Failed command execution authentication for command '{command}': {ex}");
 			return false;
 		}
 
@@ -158,12 +158,12 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 						}
 						else
 						{
-							Debug.Log(args.Reply);
+							Logger.Log(args.Reply);
 						}
 						break;
 
 					default:
-						Debug.Log(args.Reply);
+						Logger.Log(args.Reply);
 						break;
 				}
 			}
@@ -193,14 +193,14 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 				if (player != null)
 				{
 					player.ConsoleMessage(reply);
-				} 
+				}
 				else if(arg != null && arg.IsRcon)
 				{
 					Facepunch.RCon.OnMessage(reply, string.Empty, UnityEngine.LogType.Log);
 				}
 				else
 				{
-					Debug.Log(reply);
+					Logger.Log(reply);
 				}
 			}
 
@@ -209,7 +209,7 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 		}
 		catch (Exception ex)
 		{
-			Debug.LogError($"Failed executing command '{command}': {ex}");
+			Logger.Error($"Failed executing command '{command}': {ex}");
 			return false;
 		}
 	}

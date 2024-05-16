@@ -29,7 +29,7 @@ namespace Components;
 
 #pragma warning disable IDE0051
 
-internal sealed class ExtensionManager : AddonManager
+internal sealed class ExtensionManager : AddonManager, IExtensionManager
 {
 	/*
 	 * CARBON EXTENSIONS
@@ -46,8 +46,9 @@ internal sealed class ExtensionManager : AddonManager
 	 *
 	 */
 
+	public IExtensionManager.ExtensionTypes CurrentExtensionType { get; set; }
+
 	internal bool _hasLoaded;
-	internal AssemblyLoader.ProcessTypes _currentProcessType;
 
 	public WatchFolder HarmonyWatcher { get; internal set; }
 
@@ -120,7 +121,7 @@ internal sealed class ExtensionManager : AddonManager
 
 			OnFileCreated = (sender, file) =>
 			{
-				_currentProcessType = AssemblyLoader.ProcessTypes.Extension;
+				CurrentExtensionType = IExtensionManager.ExtensionTypes.Extension;
 				Load(file, "ExtensionManager.Created");
 			},
 			// OnFileChanged = (sender, file) =>
@@ -143,19 +144,45 @@ internal sealed class ExtensionManager : AddonManager
 
 			OnFileCreated = (sender, file) =>
 			{
-				_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
+				if (!HarmonyWatcher.InitialEvent && !Community.Runtime.Config.Watchers.HarmonyWatchers)
+				{
+					return;
+				}
+
+				if (HarmonyWatcher.InitialEvent)
+				{
+					CurrentExtensionType = IExtensionManager.ExtensionTypes.HarmonyMod;
+				}
+				else
+				{
+					CurrentExtensionType = IExtensionManager.ExtensionTypes.HarmonyModHotload;
+				}
+
 				Load(file, "ExtensionManager.Created");
 			},
-			// OnFileChanged = (sender, file) =>
-			// {
-			// 	_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
-			// 	Load(file, "ExtensionManager.Changed");
-			// },
-			// OnFileDeleted = (sender, file) =>
-			// {
-			// 	_currentProcessType = AssemblyLoader.ProcessTypes.HarmonyMod;
-			// 	Load(file, "ExtensionManager.Deleted");
-			// }
+			OnFileChanged = (sender, file) =>
+			{
+				if (!Community.Runtime.Config.Watchers.HarmonyWatchers)
+				{
+					return;
+				}
+
+				CurrentExtensionType = IExtensionManager.ExtensionTypes.HarmonyMod;
+				Unload(file, "ExtensionManager.HotloadUnload");
+
+				CurrentExtensionType = IExtensionManager.ExtensionTypes.HarmonyModHotload;
+				Load(file, "ExtensionManager.Changed");
+			},
+			OnFileDeleted = (sender, file) =>
+			{
+				if (!Community.Runtime.Config.Watchers.HarmonyWatchers)
+				{
+					return;
+				}
+
+				CurrentExtensionType = IExtensionManager.ExtensionTypes.HarmonyMod;
+				Unload(file, "ExtensionManager.Deleted");
+			}
 		});
 
 		Watcher.Handler.EnableRaisingEvents = false;
@@ -180,7 +207,7 @@ internal sealed class ExtensionManager : AddonManager
 			{
 				case ".dll":
 					IEnumerable<Type> types;
-					Assembly asm = _loader.Load(file, requester, _directories, blacklist, whitelist, _currentProcessType)?.Assembly
+					Assembly asm = _loader.Load(file, requester, _directories, blacklist, whitelist, CurrentExtensionType)?.Assembly
 						?? throw new ReflectionTypeLoadException(null, null, null);
 
 					if (AssemblyManager.IsType<ICarbonExtension>(asm, out types))
@@ -215,10 +242,6 @@ internal sealed class ExtensionManager : AddonManager
 								continue;
 							}
 						}
-					}
-					else
-					{
-						throw new Exception("Unsupported assembly type");
 					}
 
 					return asm;
@@ -259,29 +282,46 @@ internal sealed class ExtensionManager : AddonManager
 	{
 		var item = Loaded.FirstOrDefault(x => x.Value.Key == file);
 
-		if (item.Key != null && Harmony.ModHooks.TryGetValue(item.Key.Assembly, out var mods))
+		if (item.Key == null) return;
+
+		switch (CurrentExtensionType)
 		{
-			foreach (var mod in mods)
+			case IExtensionManager.ExtensionTypes.HarmonyMod:
+			case IExtensionManager.ExtensionTypes.HarmonyModHotload:
 			{
-				try
+				if (!Harmony.ModHooks.TryGetValue(item.Key.Assembly, out var mods))
 				{
-					// var type = mod.GetType();
-					// type.GetMethod("OnUnloaded").Invoke(mod, new object[1]);
+					return;
 				}
-				catch (Exception ex)
+
+				foreach (var mod in mods)
 				{
-					Logger.Error($"Failed unloading HarmonyMod '{item.Value.Key}'", ex);
+					try
+					{
+						mod.GetType().GetMethod("OnUnloaded").Invoke(mod, new object[1]);
+					}
+					catch (Exception ex)
+					{
+						Logger.Error($"Failed unloading HarmonyMod '{item.Value.Key}'", ex);
+					}
 				}
+
+				var unpatchCount = Harmony.UnpatchAll(item.Key.Assembly.GetName().Name);
+				Harmony.ModHooks.Remove(item.Key.Assembly);
+				Logger.Log($"Unloaded '{Path.GetFileNameWithoutExtension(item.Value.Key)}' HarmonyMod with {unpatchCount:n0} {unpatchCount.Plural("patch", "patches")}");
+
+				mods.Clear();
+				break;
 			}
+			case IExtensionManager.ExtensionTypes.Extension:
+				break;
 
-			Logger.Log($"Unloaded '{Path.GetFileNameWithoutExtension(item.Value.Key)}' HarmonyMod with {mods.Count:n0} {mods.Count.Plural("hook", "hooks")}");
-
-			mods.Clear();
-
-			_loaded.RemoveAll(x => x.File == item.Value.Key);
-
-			Harmony.ModHooks.Remove(item.Key.Assembly);
+			default:
+			case IExtensionManager.ExtensionTypes.Default:
+				break;
 		}
+
+		_loaded.RemoveAll(x => x.File == item.Value.Key);
 	}
 
 	[MethodImpl(MethodImplOptions.NoInlining)]
@@ -308,14 +348,11 @@ internal sealed class ExtensionManager : AddonManager
 
 		static byte[] Process(byte[] raw)
 		{
-			if (AssemblyLoader.IndexOf(raw, new byte[4] { 0x01, 0xdc, 0x7f, 0x01 }) == 0)
-			{
-				byte[] checksum = new byte[20];
-				Buffer.BlockCopy(raw, 4, checksum, 0, 20);
-				return AssemblyLoader.Package(checksum, raw, 24);
-			}
+			if (AssemblyLoader.IndexOf(raw, [0x01, 0xdc, 0x7f, 0x01]) != 0) return raw;
+			byte[] checksum = new byte[20];
+			Buffer.BlockCopy(raw, 4, checksum, 0, 20);
+			return AssemblyLoader.Package(checksum, raw, 24);
 
-			return raw;
 		}
 
 		if (File.Exists(file) && !nonReloadables.Contains(file))
