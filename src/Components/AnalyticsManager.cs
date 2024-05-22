@@ -6,12 +6,14 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using API.Abstracts;
 using API.Analytics;
+using Carbon;
 using Carbon.Components;
 using Carbon.Pooling;
 using Facepunch;
 using HarmonyLib;
 using Newtonsoft.Json;
 using Utility;
+using Logger = Utility.Logger;
 
 /*
  *
@@ -97,7 +99,7 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 	private static readonly Lazy<string> _userAgent = new(() =>
 	{
 		return $"carbon/{_version.Value} ({_platform.Value}; x64; {_branch.Value};"
-			+ $" +https://github.com/CarbonCommunity/Carbon.Core)";
+			+ $" +https://github.com/CarbonCommunity/Carbon)";
 	});
 
 	public string Version
@@ -155,7 +157,9 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 		_lastEngagement = float.MinValue;
 		SessionID = Util.GetRandomNumber(10);
 
-		if (File.Exists(Path.Combine(Context.Carbon, ".nostats")))
+		Config.Init();
+
+		if (!Config.Singleton.Analytics.Enabled)
 		{
 			Logger.Warn("You have opted out from analytics data collection");
 			enabled = false;
@@ -166,7 +170,7 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 				+ " Carbon version, platform, branch and plug-in count.");
 			Logger.Warn("We have no access to any personal identifiable data such as"
 				+ " steamids, server name, ip:port, title or description.");
-			Logger.Warn("If you'd like to opt-out create an empty '.nostats' file at the Carbon root folder.");
+			Logger.Warn("If you'd like to opt-out, disable it in the 'carbon/config.json' file.");
 		}
 
 		Segments = new Dictionary<string, object> {
