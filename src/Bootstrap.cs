@@ -1,10 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
-using API.Commands;
 using API.Events;
 using Components;
-using Facepunch;
 using Utility;
 
 /*
@@ -54,16 +52,16 @@ public sealed class Bootstrap
 		Carbon.Components.ConVarSnapshots.TakeSnapshot();
 
 		identifier = $"{Guid.NewGuid():N}";
-		Logger.Warn($"Using '{identifier}' as runtime namespace");
+		Utility.Logger.Warn($"Using '{identifier}' as runtime namespace");
 		assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
 	}
 
 	public static void Initialize()
 	{
-		Logger.Log($"{assemblyName} loaded.");
+		Utility.Logger.Log($"{assemblyName} loaded.");
 		_harmonyInstance = new HarmonyLib.Harmony(identifier);
 
-		var logPath = Path.Combine(Context.CarbonLogs, "harmony.log");
+		var logPath = Path.Combine(Context.CarbonLogs, "Carbon.Harmony.log");
 
 		Environment.SetEnvironmentVariable("HARMONY_LOG_FILE", logPath);
 		typeof(HarmonyLib.FileLog).GetField("_logPathInited", BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, false);
@@ -97,12 +95,6 @@ public sealed class Bootstrap
 		});
 #endif
 
-		//_gameObject.AddComponent<PermissionManager>();
-		// Test2 test2 = new Test2();
-		// test2.DoStuff(Permissions);
-		// ITestInterface foo = Test1.GetInstance();
-		// foo.DoStuff();
-
 		Events.Subscribe(CarbonEvent.StartupShared, x =>
 		{
 			AssemblyEx.Components.Load("Carbon.dll", "CarbonEvent.StartupShared");
@@ -115,12 +107,12 @@ public sealed class Bootstrap
 
 		try
 		{
-			Logger.Log("Applying Harmony patches");
+			Utility.Logger.Log("Applying Harmony patches");
 			Harmony.PatchAll(Assembly.GetExecutingAssembly());
 		}
 		catch (Exception e)
 		{
-			Logger.Error("Unable to apply all patches", e);
+			Utility.Logger.Error("Unable to apply all patches", e);
 		}
 	}
 }
