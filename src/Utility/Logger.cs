@@ -23,13 +23,12 @@ internal sealed class Logger
 		Error, Warning, Notice, Debug, None
 	}
 
-	public static List<int> Lock = new();
+	public static object Lock = new();
 
 	static Logger()
 	{
 		if (!Directory.Exists(Context.CarbonLogs))
 			Directory.CreateDirectory(Context.CarbonLogs);
-		//else if (File.Exists(logFile)) File.Delete(logFile);
 	}
 
 	internal static void Write(Severity severity, object message, Exception ex = null)
