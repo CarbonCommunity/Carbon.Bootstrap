@@ -47,9 +47,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 	 */
 
 	public IExtensionManager.ExtensionTypes CurrentExtensionType { get; set; }
-
-	internal bool _hasLoaded;
-
+	
 	public WatchFolder HarmonyWatcher { get; internal set; }
 
 	private readonly string[] _directories =
