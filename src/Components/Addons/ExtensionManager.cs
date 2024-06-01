@@ -121,6 +121,11 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 
 			OnFileCreated = (sender, file) =>
 			{
+				if (!Watcher.InitialEvent)
+				{
+					return;
+				}
+
 				CurrentExtensionType = IExtensionManager.ExtensionTypes.Extension;
 				Load(file, "ExtensionManager.Created");
 			},
@@ -322,162 +327,5 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 		}
 
 		_loaded.RemoveAll(x => x.File == item.Value.Key);
-	}
-
-	[MethodImpl(MethodImplOptions.NoInlining)]
-	public override void Reload(string file, string requester)
-	{
-		var nonReloadables = new List<string>();
-		var currentlyLoaded = _loaded.FirstOrDefault(x => x.File == file);
-
-		if (currentlyLoaded != null)
-		{
-			if (!currentlyLoaded.Addon.GetType().HasAttribute(typeof(HotloadableAttribute)))
-			{
-				nonReloadables.Add(currentlyLoaded.File);
-			}
-			else
-			{
-				currentlyLoaded.Addon.OnUnloaded(EventArgs.Empty);
-			}
-		}
-
-		var cache = new Dictionary<string, AssemblyDefinition>();
-		var streams = new List<MemoryStream>();
-		var extensions = new Dictionary<string, ICarbonExtension>();
-
-		static byte[] Process(byte[] raw)
-		{
-			if (AssemblyLoader.IndexOf(raw, [0x01, 0xdc, 0x7f, 0x01]) != 0) return raw;
-			byte[] checksum = new byte[20];
-			Buffer.BlockCopy(raw, 4, checksum, 0, 20);
-			return AssemblyLoader.Package(checksum, raw, 24);
-
-		}
-
-		if (File.Exists(file) && !nonReloadables.Contains(file))
-		{
-			switch (Path.GetExtension(file))
-			{
-				case ".dll":
-					if (!_hasLoaded)
-					{
-						Load(file, "ExtensionManager.Reload");
-					}
-					else
-					{
-						var raw = File.ReadAllBytes(file);
-						var convert = Community.Runtime.Compat.AttemptOxideConvert(ref raw);
-
-						switch (convert)
-						{
-							case ConversionResult.Fail:
-								Logger.Warn($" >> Failed Oxide extension conversion for '{file}'");
-								return;
-						}
-
-						using var stream = new MemoryStream(Process(raw));
-						var assembly = Mono.Cecil.AssemblyDefinition.ReadAssembly(stream, new ReaderParameters { AssemblyResolver = new Resolver() });
-						var originalName = assembly.Name.Name;
-						assembly.Name = new AssemblyNameDefinition($"{assembly.Name.Name}_{Guid.NewGuid()}", assembly.Name.Version);
-						cache.Add(originalName, assembly);
-					}
-					break;
-			}
-		}
-
-		_hasLoaded = true;
-
-		nonReloadables.Clear();
-		nonReloadables = null;
-
-		foreach (var _assembly in cache)
-		{
-			foreach (var refer in _assembly.Value.MainModule.AssemblyReferences)
-			{
-				if (cache.TryGetValue(refer.Name, out var assembly))
-				{
-					refer.Name = assembly.Name.Name;
-				}
-			}
-
-			using MemoryStream memoryStream = new MemoryStream();
-			_assembly.Value.Write(memoryStream);
-			memoryStream.Position = 0;
-			_assembly.Value.Dispose();
-
-			var bytes = memoryStream.ToArray();
-			var processedAssembly = Assembly.Load(bytes);
-
-			if (AssemblyManager.IsType<ICarbonExtension>(processedAssembly, out var types))
-			{
-				var extensionFile = Path.Combine(Context.CarbonExtensions, $"{_assembly.Key}.dll");
-				var existentItem = _loaded.FirstOrDefault(x => x.File == extensionFile);
-				if (existentItem == null)
-				{
-					_loaded.Add(existentItem = new() { File = extensionFile });
-				}
-
-				existentItem.PostProcessedRaw = bytes;
-				existentItem.Shared = processedAssembly.GetExportedTypes();
-
-				var extensionTypes = new List<Type>();
-				foreach (var type in types)
-				{
-					if (Activator.CreateInstance(type) is ICarbonExtension ext)
-					{
-						extensionTypes.Add(type);
-						existentItem.Addon = ext;
-
-						Logger.Debug($"A new instance of '{type}' created");
-						extensions.Add(_assembly.Key, ext);
-					}
-				}
-				existentItem.Types = extensionTypes;
-			}
-		}
-
-		foreach (var extension in extensions)
-		{
-			var extensionFile = Path.Combine(Context.CarbonExtensions, $"{extension.Key}.dll");
-			var arg = new CarbonEventArgs(extensionFile);
-
-			try
-			{
-				extension.Value.Awake(arg);
-				extension.Value.OnLoaded(arg);
-
-				Carbon.Bootstrap.Events
-					.Trigger(CarbonEvent.ExtensionLoaded, arg);
-			}
-			catch (Exception e)
-			{
-				Carbon.Bootstrap.Events
-					.Trigger(CarbonEvent.ExtensionLoadFailed, arg);
-
-				Logger.Error($"Failed to instantiate extension from type '{extension.Value}'\n{e}\nInner: {e.InnerException}");
-				continue;
-			}
-		}
-
-		_hasLoaded = true;
-
-		Dispose();
-
-		void Dispose()
-		{
-			foreach(var stream in streams)
-			{
-				stream.Dispose();
-			}
-
-			extensions.Clear();
-			streams.Clear();
-			cache.Clear();
-
-			extensions = null;
-			streams = null;
-			cache = null;
-		}
 	}
 }
