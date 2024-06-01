@@ -18,7 +18,7 @@ using Utility;
 
 /*
  *
- * Copyright (c) 2022-2023 Carbon Community
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -28,24 +28,6 @@ namespace Components;
 
 internal sealed class ModuleManager : AddonManager
 {
-	/*
-	 * CARBON MODULES
-	 * API.Contracts.ICarbonModule
-	 *
-	 * An assembly to be considered as a Carbon Module must:
-	 *   1. Be optional
-	 *   2. Implement the ICarbonModule interface
-	 *   3. Provide additional functionality such as new features or services
-	 *
-	 * Carbon modules can be compared to Oxide Extensions, they can be created
-	 * by anyone and can change and/or interact with the world as any other user
-	 * plugin can.
-	 *
-	 */
-	private readonly string[] _directories =
-	{
-		Context.CarbonModules
-	};
 	private static readonly string[] _references =
 	{
 		Context.CarbonModules,
@@ -59,7 +41,6 @@ internal sealed class ModuleManager : AddonManager
 	public static Dictionary<string, Assembly> ModuleAssemblyCache = new();
 	public static Resolver ResolverInstance;
 	public static ReaderParameters ReadingParameters = new() { AssemblyResolver = ResolverInstance = new Resolver()};
-	public int Iterations = 100;
 
 	public class Resolver : IAssemblyResolver
 	{
@@ -136,33 +117,32 @@ internal sealed class ModuleManager : AddonManager
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public override Assembly Load(string file, string requester = null)
 	{
-		var hotloadable = true;
-		var currentlyLoaded = _loaded.FirstOrDefault(x => x.File == file);
+		var item = _loaded.FirstOrDefault(x => x.File == file);
 
-		if (currentlyLoaded != null)
+		if (item != null)
 		{
-			if (!currentlyLoaded.Addon.GetType().HasAttribute(typeof(HotloadableAttribute)))
+			if (item.CanHotload)
 			{
-				hotloadable = false;
+				var arg = new ModuleEventArgs(item.File, item.Addon as ICarbonModule, null);
+
+                try
+                {
+                	item.Addon.OnUnloaded(EventArgs.Empty);
+
+                	Carbon.Bootstrap.Events
+                		.Trigger(CarbonEvent.ModuleUnloaded, arg);
+                }
+                catch (Exception ex)
+                {
+                	Logger.Error($"Couldn't unload module '{item.File}'", ex);
+
+                	Carbon.Bootstrap.Events
+                		.Trigger(CarbonEvent.ModuleUnloadFailed, arg);
+                }
 			}
 			else
 			{
-				var arg = new ModuleEventArgs(currentlyLoaded.File, currentlyLoaded.Addon as ICarbonModule, null);
-
-				try
-				{
-					currentlyLoaded.Addon.OnUnloaded(EventArgs.Empty);
-
-					Carbon.Bootstrap.Events
-						.Trigger(CarbonEvent.ModuleUnloaded, arg);
-				}
-				catch (Exception ex)
-				{
-					Logger.Error($"Couldn't unload module '{currentlyLoaded.File}'", ex);
-
-					Carbon.Bootstrap.Events
-						.Trigger(CarbonEvent.ModuleUnloadFailed, arg);
-				}
+				return null;
 			}
 		}
 
@@ -172,18 +152,25 @@ internal sealed class ModuleManager : AddonManager
 		var assemblyName = string.Empty;
 		var result = (Assembly)null;
 
-		if (File.Exists(file) && hotloadable)
+		if (File.Exists(file))
 		{
 			switch (Path.GetExtension(file))
 			{
 				case ".dll":
 					stream = new MemoryStream(File.ReadAllBytes(file));
+
 					var assembly = AssemblyDefinition.ReadAssembly(stream, ReadingParameters);
 					assemblyName = assembly.Name.Name;
 
-					// var version = assembly.Name.Version;
-					// assembly.Name.Name = $"{assembly.Name.Name}_{Guid.NewGuid()}";
-					// assembly.Name.Version = new Version(version.Major, version.Minor, version.Build + Iterations++, version.Revision);
+					assembly.Name.Name = $"{assembly.Name.Name}_{Guid.NewGuid()}";
+
+					foreach (var reference in assembly.MainModule.AssemblyReferences)
+					{
+						if (ResolverInstance.Cache.TryGetValue(reference.Name, out var assemblyDefinition))
+						{
+							reference.Name = assemblyDefinition.Name.Name;
+						}
+					}
 
 					ResolverInstance.Cache[assemblyName] = assembly;
 
@@ -212,15 +199,14 @@ internal sealed class ModuleManager : AddonManager
 		if (AssemblyManager.IsType<ICarbonModule>(result, out var types))
 		{
 			var moduleFile = Path.Combine(Context.CarbonModules, $"{assemblyName}.dll");
-			var existentItem = _loaded.FirstOrDefault(x => x.File == moduleFile);
 
-			if (existentItem == null)
+			if (item == null)
 			{
-				_loaded.Add(existentItem = new() { File = moduleFile });
+				_loaded.Add(item = new() { File = moduleFile });
 			}
 
-			existentItem.PostProcessedRaw = bytes;
-			existentItem.Shared = result.GetTypes();
+			item.PostProcessedRaw = bytes;
+			item.Shared = result.GetTypes();
 
 			var moduleTypes = new List<Type>();
 			foreach (var type in types)
@@ -232,12 +218,12 @@ internal sealed class ModuleManager : AddonManager
 				Hydrate(result, module);
 
 				moduleTypes.Add(type);
-				existentItem.Addon = module;
+				item.Addon = module;
 
 				Logger.Debug($"A new instance of '{type}' created");
 			}
 
-			existentItem.Types = moduleTypes;
+			item.Types = moduleTypes;
 		}
 
 		if (module == null)
@@ -251,13 +237,14 @@ internal sealed class ModuleManager : AddonManager
 		try
 		{
 			var arg = new CarbonEventArgs(file);
-			var existentItem = _loaded.FirstOrDefault(x => x.File == file);
+			var isHotloadable = item.Addon.GetType().HasAttribute(typeof(HotloadableAttribute));
+			item.CanHotload = isHotloadable;
 
 			module.Awake(arg);
 			module.OnLoaded(arg);
 
 			Carbon.Bootstrap.Events
-				.Trigger(CarbonEvent.ModuleLoaded, new ModuleEventArgs(file, module, existentItem.Shared));
+				.Trigger(CarbonEvent.ModuleLoaded, new ModuleEventArgs(file, module, item.Shared));
 		}
 		catch (Exception e)
 		{
