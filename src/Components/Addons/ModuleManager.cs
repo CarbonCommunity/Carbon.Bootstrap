@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using API.Assembly;
 using API.Events;
+using Carbon;
 using Carbon.Components;
 using Carbon.Pooling;
 using Carbon.Profiler;
@@ -15,6 +16,7 @@ using Facepunch.Extend;
 using Loaders;
 using Mono.Cecil;
 using Utility;
+using Logger = Utility.Logger;
 
 /*
  *
@@ -100,15 +102,30 @@ internal sealed class ModuleManager : AddonManager
 
 			OnFileCreated = (sender, file) =>
 			{
+				if (!Watcher.InitialEvent && !Community.Runtime.Config.Watchers.ModuleWatchers)
+				{
+					return;
+				}
+
 				Load(file, "ModuleManager.Created");
 			},
 			OnFileChanged = (sender, file) =>
 			{
+				if (!Community.Runtime.Config.Watchers.ModuleWatchers)
+				{
+					return;
+				}
+
 				Unload(file, "ModuleManager.Changed");
 				Load(file, "ModuleManager.Changed");
 			},
 			OnFileDeleted = (sender, file) =>
 			{
+				if (!Community.Runtime.Config.Watchers.ModuleWatchers)
+				{
+					return;
+				}
+
 				Unload(file, "ModuleManager.Deleted");
 			}
 		});
@@ -249,6 +266,9 @@ internal sealed class ModuleManager : AddonManager
 		catch (Exception e)
 		{
 			Logger.Error($"Failed to instantiate module from type '{assemblyName}' [{file}]", e);
+
+			Carbon.Bootstrap.Events
+				.Trigger(CarbonEvent.ModuleLoadFailed, new ModuleEventArgs(file, module, item.Shared));
 		}
 
 		Dispose();
@@ -276,7 +296,6 @@ internal sealed class ModuleManager : AddonManager
 		{
 			if (!item.CanHotload)
 			{
-				Logger.Warn($" Cannot hotload as the module does not support it [{file} requested by {requester}]");
 				return;
 			}
 
@@ -288,6 +307,9 @@ internal sealed class ModuleManager : AddonManager
 		catch (Exception ex)
 		{
 			Logger.Error($"Failed unloading module '{file}' (requested by {requester})", ex);
+
+			Carbon.Bootstrap.Events
+				.Trigger(CarbonEvent.ModuleUnloadFailed, new ModuleEventArgs(file, (ICarbonModule)item.Addon, null));
 		}
 
 		_loaded.Remove(item);
