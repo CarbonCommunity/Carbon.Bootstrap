@@ -140,7 +140,7 @@ internal sealed class ModuleManager : AddonManager
 		{
 			if (item.CanHotload)
 			{
-				var arg = new ModuleEventArgs(item.File, item.Addon as ICarbonModule, null);
+				var arg = new ModuleEventArgs(item.File, item.Addon as IModulePackage, null);
 
                 try
                 {
@@ -159,13 +159,14 @@ internal sealed class ModuleManager : AddonManager
 			}
 			else
 			{
+				Logger.Warn($"Module '{Path.GetFileName(item.File)}' does not support hotloading.");
 				return null;
 			}
 		}
 
 		var definition = (AssemblyDefinition)null;
 		var stream = (MemoryStream)null;
-		var module = (ICarbonModule)null;
+		var module = (IModulePackage)null;
 		var assemblyName = string.Empty;
 		var result = (Assembly)null;
 
@@ -213,7 +214,7 @@ internal sealed class ModuleManager : AddonManager
 
 		MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Module, result, Path.GetFileNameWithoutExtension(file));
 
-		if (AssemblyManager.IsType<ICarbonModule>(result, out var types))
+		if (AssemblyManager.IsType<IModulePackage>(result, out var types))
 		{
 			var moduleFile = Path.Combine(Context.CarbonModules, $"{assemblyName}.dll");
 
@@ -228,9 +229,9 @@ internal sealed class ModuleManager : AddonManager
 			var moduleTypes = new List<Type>();
 			foreach (var type in types)
 			{
-				if (!type.GetInterfaces().Contains(typeof(ICarbonModule))) continue;
+				if (!type.GetInterfaces().Contains(typeof(IModulePackage))) continue;
 
-				module = Activator.CreateInstance(type) as ICarbonModule;
+				module = Activator.CreateInstance(type) as IModulePackage;
 
 				Hydrate(result, module);
 
@@ -300,7 +301,7 @@ internal sealed class ModuleManager : AddonManager
 			}
 
 			Carbon.Bootstrap.Events
-				.Trigger(CarbonEvent.ModuleUnloaded, new ModuleEventArgs(file, (ICarbonModule)item.Addon, null));
+				.Trigger(CarbonEvent.ModuleUnloaded, new ModuleEventArgs(file, (IModulePackage)item.Addon, null));
 
 			item.Addon.OnUnloaded(EventArgs.Empty);
 		}
@@ -309,7 +310,7 @@ internal sealed class ModuleManager : AddonManager
 			Logger.Error($"Failed unloading module '{file}' (requested by {requester})", ex);
 
 			Carbon.Bootstrap.Events
-				.Trigger(CarbonEvent.ModuleUnloadFailed, new ModuleEventArgs(file, (ICarbonModule)item.Addon, null));
+				.Trigger(CarbonEvent.ModuleUnloadFailed, new ModuleEventArgs(file, (IModulePackage)item.Addon, null));
 		}
 
 		_loaded.Remove(item);
