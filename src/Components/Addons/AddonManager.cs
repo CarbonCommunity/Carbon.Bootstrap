@@ -25,6 +25,7 @@ internal abstract class AddonManager : CarbonBehaviour, IAddonManager
 		public IReadOnlyList<Type> Types { get; internal set; }
 		public IReadOnlyList<Type> Shared { get; internal set; }
 		public string File { get; internal set; }
+		public bool CanHotload { get; internal set; }
 	}
 
 	internal readonly AssemblyLoader _loader = new();
@@ -81,7 +82,6 @@ internal abstract class AddonManager : CarbonBehaviour, IAddonManager
 
 	public abstract Assembly Load(string file, string requester);
 	public abstract void Unload(string file, string requester);
-	public abstract void Reload(string file, string requester);
 
 	internal virtual void Hydrate(Assembly assembly, ICarbonAddon addon)
 	{

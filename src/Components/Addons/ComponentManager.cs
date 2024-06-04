@@ -10,7 +10,7 @@ using Utility;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -23,7 +23,7 @@ internal sealed class ComponentManager : AddonManager
 	/*
 	 * CARBON COMPONENTS
 	 * API.Contracts.ICarbonComponent
-	 * 
+	 *
 	 * An assembly to be considered as a Carbon Component must:
 	 *   1. Implement the ICarbonComponent interface
 	 *   2. Be developed and maintained by the Carbon team
@@ -122,12 +122,6 @@ internal sealed class ComponentManager : AddonManager
 
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public override void Unload(string file, string requester)
-	{
-		
-	}
-
-	[MethodImpl(MethodImplOptions.NoInlining)]
-	public override void Reload(string file, string requester)
 	{
 
 	}
