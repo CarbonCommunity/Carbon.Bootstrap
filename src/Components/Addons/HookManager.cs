@@ -9,7 +9,7 @@ using Utility;
 
 /*
  *
- * Copyright (c) 2022-2024 Carbon Community 
+ * Copyright (c) 2022-2024 Carbon Community
  * All rights reserved.
  *
  */
@@ -95,12 +95,6 @@ internal sealed class HookManager : AddonManager
 
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public override void Unload(string file, string requester)
-	{
-
-	}
-
-	[MethodImpl(MethodImplOptions.NoInlining)]
-	public override void Reload(string file, string requester)
 	{
 
 	}
