@@ -72,8 +72,22 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 	{
 		byte[] raw = default;
 
-		Assembly assembly = _library.GetDomain().GetAssemblies()
-			.FirstOrDefault(asm => asm.GetName().Name.Equals(file));
+		foreach(var extension in Extensions.Loaded.Values)
+		{
+			if (Path.GetFileName(extension.Key) != file) continue;
+			raw = Extensions.Read(file);
+			if (raw != null) return raw;
+		}
+
+		foreach (string expr in _blacklistLibs)
+		{
+			if (Regex.IsMatch(file, expr)) break;
+			IAssemblyCache result = _library.ResolveAssembly(file, $"{this}", directories);
+			if (result.Raw != null) return result.Raw;
+		}
+
+		Assembly assembly = _library.GetDomain().GetAssemblies().FirstOrDefault(asm => asm.GetName().Name.Equals(file));
+
 		if (assembly != null && !assembly.IsDynamic)
 		{
 			if (assembly.Location != string.Empty)
@@ -81,28 +95,6 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 				raw = File.ReadAllBytes(assembly.Location);
 				if (raw != null) return raw;
 			}
-		}
-
-		foreach(var extension in Extensions.Loaded.Values)
-		{
-			if (Path.GetFileName(extension.Key) == file)
-			{
-				raw = Extensions.Read(file);
-				if (raw != null) return raw;
-			}
-		}
-
-		// if (_whitelistLibs.Contains(file))
-		// {
-		// 	IAssemblyCache result = _library.ResolveAssembly(file, $"{this}");
-		// 	if (result.Raw != null) return result.Raw;
-		// }
-
-		foreach (string expr in _blacklistLibs)
-		{
-			if (Regex.IsMatch(file, expr)) break;
-			IAssemblyCache result = _library.ResolveAssembly(file, $"{this}", directories);
-			if (result.Raw != null) return result.Raw;
 		}
 
 		Logger.Warn($"Unable to get byte[] for '{file}'");
