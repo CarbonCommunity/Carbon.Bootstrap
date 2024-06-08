@@ -72,20 +72,6 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 	{
 		byte[] raw = default;
 
-		foreach(var extension in Extensions.Loaded.Values)
-		{
-			if (Path.GetFileName(extension.Key) != file) continue;
-			raw = Extensions.Read(file);
-			if (raw != null) return raw;
-		}
-
-		foreach (string expr in _blacklistLibs)
-		{
-			if (Regex.IsMatch(file, expr)) break;
-			IAssemblyCache result = _library.ResolveAssembly(file, $"{this}", directories);
-			if (result.Raw != null) return result.Raw;
-		}
-
 		Assembly assembly = _library.GetDomain().GetAssemblies().FirstOrDefault(asm => asm.GetName().Name.Equals(file));
 
 		if (assembly != null && !assembly.IsDynamic)
@@ -96,6 +82,21 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 				if (raw != null) return raw;
 			}
 		}
+
+		foreach(var extension in Extensions.Loaded.Values)
+		{
+			if (Path.GetFileName(extension.Key) != file) continue;
+			raw = Extensions.Read(file);
+			if (raw != null) return raw;
+		}
+		
+		foreach (string expr in _blacklistLibs)
+		{
+			if (Regex.IsMatch(file, expr)) break;
+			IAssemblyCache result = _library.ResolveAssembly(file, $"{this}", directories);
+			if (result.Raw != null) return result.Raw;
+		}
+
 
 		Logger.Warn($"Unable to get byte[] for '{file}'");
 		return default;
