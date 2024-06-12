@@ -44,7 +44,9 @@ internal sealed class DownloadManager : CarbonBehaviour, IDownloadManager
 		WebClient webClient = new WebClient();
 		webClient.DownloadDataCompleted += OnDownloadDataCompleted;
 		webClient.Headers.Add(HttpRequestHeader.UserAgent, _userAgent);
-
+		webClient.Headers.Add(HttpRequestHeader.CacheControl, "no-cache");
+		webClient.Headers.Add(HttpRequestHeader.Pragma, "no-cache");
+		
 		DownloadItem job = _donwloadQueue.Dequeue();
 		job.Start = DateTime.UtcNow;
 		_currentDownloads++;
