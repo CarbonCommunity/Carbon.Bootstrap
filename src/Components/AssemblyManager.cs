@@ -89,7 +89,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 			raw = Extensions.Read(file);
 			if (raw != null) return raw;
 		}
-		
+
 		foreach (string expr in _blacklistLibs)
 		{
 			if (Regex.IsMatch(file, expr)) break;
@@ -171,6 +171,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"Carbon.Common",
 		"Carbon.Common.Client",
 		"Carbon.SDK",
+		"Carbon.Test",
 
 		"MySql.Data", // v6.9.5.0
 		"protobuf-net.Core",
