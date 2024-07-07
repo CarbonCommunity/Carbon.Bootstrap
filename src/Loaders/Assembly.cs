@@ -128,6 +128,7 @@ internal sealed class AssemblyLoader : IDisposable
 			case IExtensionManager.ExtensionTypes.HarmonyMod:
 			case IExtensionManager.ExtensionTypes.HarmonyModHotload:
 				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, asm, Path.GetFileNameWithoutExtension(file), true);
+				Assemblies.Harmony.Update(Path.GetFileNameWithoutExtension(file), asm, file);
 
 				var hooks = new List<object>();
 
@@ -174,6 +175,7 @@ internal sealed class AssemblyLoader : IDisposable
 
 			case IExtensionManager.ExtensionTypes.Extension:
 				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, asm, Path.GetFileNameWithoutExtension(file));
+				Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), asm, file);
 				break;
 		}
 
