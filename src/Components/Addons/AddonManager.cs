@@ -30,11 +30,9 @@ internal abstract class AddonManager : CarbonBehaviour, IAddonManager
 
 	internal readonly AssemblyLoader _loader = new();
 
-	internal IAssemblyManager AssemblyManager
-	{ get => GetComponentInParent<IAssemblyManager>(); }
+	internal IAssemblyManager AssemblyManager { get => GetComponentInParent<IAssemblyManager>(); }
 
-	internal List<Item> _loaded
-	{ get; set; } = new();
+	internal List<Item> _loaded { get; set; } = new();
 
 	public WatchFolder Watcher { get; internal set; }
 
