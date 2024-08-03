@@ -6,13 +6,6 @@ using System.Text.RegularExpressions;
 using Facepunch.Extend;
 using Mono.Cecil;
 
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Utility;
 
 public sealed class AssemblyValidator : MarshalByRefObject

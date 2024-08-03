@@ -1,17 +1,6 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using API.Events;
+﻿using System.Collections;
 using Carbon;
 using HarmonyLib;
-using UnityEngine;
-
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community
- * All rights reserved.
- *
- */
 
 namespace Patches;
 

@@ -8,13 +8,6 @@ using API.Abstracts;
 using API.Assembly;
 using Utility;
 
-/*
- *
- * Copyright (c) 2022-2023 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Loaders;
 
 internal sealed class LibraryLoader : Singleton<LibraryLoader>, IDisposable
