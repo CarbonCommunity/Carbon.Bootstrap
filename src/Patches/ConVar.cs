@@ -1,12 +1,5 @@
 ﻿using HarmonyLib;
 
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community 
- * All rights reserved.
- *
- */
-
 namespace Patches;
 #pragma warning disable IDE0051
 

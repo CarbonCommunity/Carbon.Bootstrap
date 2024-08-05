@@ -11,13 +11,6 @@ using Carbon.Compat;
 using Loaders;
 using Utility;
 
-/*
- *
- * Copyright (c) 2022-2023 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Components;
 #pragma warning disable IDE0051
 
@@ -169,7 +162,6 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"System",
 
 		"Carbon.Common",
-		"Carbon.Common.Client",
 		"Carbon.SDK",
 		"Carbon.Test",
 

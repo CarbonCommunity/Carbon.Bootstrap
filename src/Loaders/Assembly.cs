@@ -11,13 +11,6 @@ using Carbon.Profiler;
 using Utility;
 using Logger = Utility.Logger;
 
-/*
- *
- * Copyright (c) 2022-2023 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Loaders;
 
 internal sealed class AssemblyLoader : IDisposable
@@ -37,8 +30,6 @@ internal sealed class AssemblyLoader : IDisposable
 		Context.CarbonHooks,
 		Context.CarbonExtensions,
 	};
-
-
 
 	internal IAssemblyCache Load(string file, string requester,
 		string[] directories, IReadOnlyList<string> blackList, IReadOnlyList<string> whiteList, IExtensionManager.ExtensionTypes extensionType = IExtensionManager.ExtensionTypes.Default)
@@ -75,6 +66,7 @@ internal sealed class AssemblyLoader : IDisposable
 		}
 
 		byte[] raw = File.ReadAllBytes(path);
+		bool converted = false;
 
 		switch (extensionType)
 		{
@@ -86,12 +78,16 @@ internal sealed class AssemblyLoader : IDisposable
 					case ConversionResult.Fail:
 						Logger.Warn($" >> Failed Oxide extension conversion for '{file}'");
 						return default;
+
+					default:
+						converted = true;
+						break;
 				}
 				break;
 
 			case IExtensionManager.ExtensionTypes.HarmonyMod:
 			case IExtensionManager.ExtensionTypes.HarmonyModHotload:
-				Community.Runtime.Compat.ConvertHarmonyMod(ref raw);
+				converted = Community.Runtime.Compat.ConvertHarmonyMod(ref raw);
 
 				if (raw == null)
 				{
@@ -128,52 +124,57 @@ internal sealed class AssemblyLoader : IDisposable
 			case IExtensionManager.ExtensionTypes.HarmonyMod:
 			case IExtensionManager.ExtensionTypes.HarmonyModHotload:
 				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, asm, Path.GetFileNameWithoutExtension(file), true);
+				Assemblies.Harmony.Update(Path.GetFileNameWithoutExtension(file), asm, file);
 
-				var hooks = new List<object>();
-
-				var patchCount = Harmony.PatchAll(asm);
-
-				foreach (var type in asm.GetTypes())
+				if (!converted)
 				{
-					if (type.GetInterfaces().All(x => x.Name != "IHarmonyModHooks")) continue;
+					var hooks = new List<object>();
+					var patchCount = Harmony.PatchAll(asm);
 
-					try
+					foreach (var type in asm.GetTypes())
 					{
-						var mod = Activator.CreateInstance(type);
+						if (type.GetInterfaces().All(x => x.Name != "IHarmonyModHooks")) continue;
 
-						if (mod == null)
+						try
 						{
-							Logger.Error($"Failed to create hook instance: Is null ({path} -> {requester})");
-						}
-						else
-						{
-							hooks.Add(mod);
-						}
+							var mod = Activator.CreateInstance(type);
 
-						if (extensionType == IExtensionManager.ExtensionTypes.HarmonyModHotload)
+							if (mod == null)
+							{
+								Logger.Error($"Failed to create hook instance: Is null ({path} -> {requester})");
+							}
+							else
+							{
+								hooks.Add(mod);
+							}
+
+							if (extensionType == IExtensionManager.ExtensionTypes.HarmonyModHotload)
+							{
+								try
+								{
+									type.GetMethod("OnLoaded").Invoke(mod, new object[1]);
+								}
+								catch (Exception ex)
+								{
+									Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
+								}
+							}
+						}
+						catch (Exception ex)
 						{
-							try
-							{
-								type.GetMethod("OnLoaded").Invoke(mod, new object[1]);
-							}
-							catch (Exception ex)
-							{
-								Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
-							}
+							Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
 						}
 					}
-					catch (Exception ex)
-					{
-						Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
-					}
+
+					Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {patchCount:n0} {patchCount.Plural("patch", "patches")}");
+					Harmony.ModHooks.Add(asm, hooks);
 				}
 
-				Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {patchCount:n0} {patchCount.Plural("patch", "patches")}");
-				Harmony.ModHooks.Add(asm, hooks);
 				break;
 
 			case IExtensionManager.ExtensionTypes.Extension:
 				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, asm, Path.GetFileNameWithoutExtension(file));
+				Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), asm, file);
 				break;
 		}
 

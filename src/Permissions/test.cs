@@ -2,13 +2,6 @@
 using API.Abstracts;
 using API.Permissions;
 
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community 
- * All rights reserved.
- *
- */
-
 public sealed class Test1 : Singleton<Test1>, ITestInterface
 {
 	private Test1() { }

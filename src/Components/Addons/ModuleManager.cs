@@ -18,13 +18,6 @@ using Mono.Cecil;
 using Utility;
 using Logger = Utility.Logger;
 
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Components;
 #pragma warning disable IDE0051
 
@@ -213,6 +206,7 @@ internal sealed class ModuleManager : AddonManager
 		ModuleAssemblyCache[result.FullName] = result;
 
 		MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Module, result, Path.GetFileNameWithoutExtension(file));
+		Assemblies.Modules.Update(Path.GetFileNameWithoutExtension(file), result, file);
 
 		if (AssemblyManager.IsType<IModulePackage>(result, out var types))
 		{
@@ -312,6 +306,8 @@ internal sealed class ModuleManager : AddonManager
 			Carbon.Bootstrap.Events
 				.Trigger(CarbonEvent.ModuleUnloadFailed, new ModuleEventArgs(file, (IModulePackage)item.Addon, null));
 		}
+
+		Assemblies.Modules.Eliminate(Path.GetFileNameWithoutExtension(file));
 
 		_loaded.Remove(item);
 	}

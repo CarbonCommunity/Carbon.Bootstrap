@@ -6,13 +6,6 @@ using System.Threading.Tasks;
 using API.Abstracts;
 using API.Contracts;
 
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Components;
 #pragma warning disable IDE0051
 
