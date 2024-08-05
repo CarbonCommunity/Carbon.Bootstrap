@@ -2,13 +2,6 @@
 using System.IO;
 using Carbon.Extensions;
 
-/*
- *
- * Copyright (c) 2022-2023 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Utility;
 
 internal sealed class Context

@@ -6,13 +6,6 @@ using API.Abstracts;
 using API.Assembly;
 using UnityEngine;
 
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Components;
 
 internal sealed class FileWatcherManager : CarbonBehaviour, IFileWatcherManager, IDisposable

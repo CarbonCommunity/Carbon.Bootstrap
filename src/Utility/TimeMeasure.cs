@@ -2,13 +2,6 @@
 using System.Diagnostics;
 using Facepunch;
 
-/*
- *
- * Copyright (c) 2022-2023 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Utility;
 
 public struct TimeMeasure : IDisposable

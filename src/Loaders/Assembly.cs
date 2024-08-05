@@ -11,13 +11,6 @@ using Carbon.Profiler;
 using Utility;
 using Logger = Utility.Logger;
 
-/*
- *
- * Copyright (c) 2022-2023 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Loaders;
 
 internal sealed class AssemblyLoader : IDisposable
@@ -37,8 +30,6 @@ internal sealed class AssemblyLoader : IDisposable
 		Context.CarbonHooks,
 		Context.CarbonExtensions,
 	};
-
-
 
 	internal IAssemblyCache Load(string file, string requester,
 		string[] directories, IReadOnlyList<string> blackList, IReadOnlyList<string> whiteList, IExtensionManager.ExtensionTypes extensionType = IExtensionManager.ExtensionTypes.Default)
