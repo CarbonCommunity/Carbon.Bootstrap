@@ -5,13 +5,6 @@ using API.Events;
 using Components;
 using Utility;
 
-/*
- *
- * Copyright (c) 2022-2023 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Carbon;
 
 public sealed class Bootstrap
@@ -19,14 +12,11 @@ public sealed class Bootstrap
 	private static readonly string identifier;
 	private static readonly string assemblyName;
 	private static UnityEngine.GameObject _gameObject;
-
 	private static HarmonyLib.Harmony _harmonyInstance;
 
-	public static string Name
-	{ get => assemblyName; }
+	public static string Name { get => assemblyName; }
 
-	internal static HarmonyLib.Harmony Harmony
-	{ get => _harmonyInstance; }
+	internal static HarmonyLib.Harmony Harmony { get => _harmonyInstance; }
 
 	internal static AnalyticsManager Analytics { get; private set; }
 

@@ -2,13 +2,6 @@ using System;
 using API.Events;
 using HarmonyLib;
 
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Patches;
 
 internal static class __FileSystem_Warmup

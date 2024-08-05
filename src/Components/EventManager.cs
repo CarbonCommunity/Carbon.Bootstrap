@@ -4,13 +4,6 @@ using API.Abstracts;
 using API.Events;
 using Utility;
 
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Components;
 
 #pragma warning disable UNT0006
