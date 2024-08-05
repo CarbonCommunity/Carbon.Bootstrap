@@ -2,13 +2,6 @@
 using Facepunch.Sqlite;
 using Utility;
 
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community 
- * All rights reserved.
- *
- */
-
 namespace Components;
 #pragma warning disable IDE0051
 

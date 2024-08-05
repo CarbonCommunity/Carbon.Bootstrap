@@ -6,13 +6,6 @@ using API.Abstracts;
 using API.Assembly;
 using Loaders;
 
-/*
- *
- * Copyright (c) 2022-2023 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Components;
 #pragma warning disable IDE0051
 
@@ -30,11 +23,9 @@ internal abstract class AddonManager : CarbonBehaviour, IAddonManager
 
 	internal readonly AssemblyLoader _loader = new();
 
-	internal IAssemblyManager AssemblyManager
-	{ get => GetComponentInParent<IAssemblyManager>(); }
+	internal IAssemblyManager AssemblyManager { get => GetComponentInParent<IAssemblyManager>(); }
 
-	internal List<Item> _loaded
-	{ get; set; } = new();
+	internal List<Item> _loaded { get; set; } = new();
 
 	public WatchFolder Watcher { get; internal set; }
 
