@@ -6,13 +6,6 @@ using API.Abstracts;
 using API.Assembly;
 using Loaders;
 
-/*
- *
- * Copyright (c) 2022-2023 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Components;
 #pragma warning disable IDE0051
 

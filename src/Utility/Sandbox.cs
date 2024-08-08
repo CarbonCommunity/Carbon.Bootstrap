@@ -2,13 +2,6 @@
 using System.Security;
 using System.Security.Permissions;
 
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community 
- * All rights reserved.
- *
- */
-
 namespace Utility;
 
 [Serializable]

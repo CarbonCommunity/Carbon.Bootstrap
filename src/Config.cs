@@ -3,13 +3,6 @@ using System.IO;
 using Newtonsoft.Json;
 using Utility;
 
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community
- * All rights reserved.
- *
- */
-
 namespace Carbon;
 
 [Serializable]

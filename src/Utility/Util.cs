@@ -2,13 +2,6 @@
 using System.Linq;
 using System.Security.Cryptography;
 
-/*
- *
- * Copyright (c) 2022-2024 Carbon Community 
- * All rights reserved.
- *
- */
-
 namespace Utility;
 
 public static class Util
