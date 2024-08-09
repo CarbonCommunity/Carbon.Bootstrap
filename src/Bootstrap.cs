@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using API.Events;
 using Components;
+using Patches;
 using Utility;
 
 namespace Carbon;
@@ -61,7 +62,10 @@ public sealed class Bootstrap
 		HarmonyLib.Harmony.DEBUG = false;
 #endif
 
-		if(File.Exists(logPath)) File.Delete(logPath);
+		if(File.Exists(logPath))
+		{
+			File.Delete(logPath);
+		}
 
 		_gameObject = new UnityEngine.GameObject("Carbon");
 		UnityEngine.Object.DontDestroyOnLoad(_gameObject);
@@ -75,15 +79,6 @@ public sealed class Bootstrap
 		Analytics = _gameObject.AddComponent<AnalyticsManager>();
 		AssemblyEx = _gameObject.AddComponent<AssemblyManager>();
 		Downloader = _gameObject.AddComponent<DownloadManager>();
-
-#if EXPERIMENTAL
-		Threads = _gameObject.AddComponent<ThreadManager>();
-
-		Events.Subscribe(CarbonEvent.FileSystemWarmupComplete, x =>
-		{
-			Threads.enabled = true;
-		});
-#endif
 
 		Events.Subscribe(CarbonEvent.StartupShared, x =>
 		{
@@ -104,5 +99,10 @@ public sealed class Bootstrap
 		{
 			Utility.Logger.Error("Unable to apply all patches", e);
 		}
+
+		Events.Subscribe(CarbonEvent.HooksInstalled, x =>
+		{
+			FileSystem_WarmupHalt.IsReady = true;
+		});
 	}
 }
