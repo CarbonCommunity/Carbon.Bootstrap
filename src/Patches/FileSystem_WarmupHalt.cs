@@ -11,11 +11,10 @@ internal static class FileSystem_WarmupHalt
 {
 	internal static bool IsReady = false;
 	internal static bool AllowNative = false;
-	internal static bool ShouldContinue => ModLoader.IsBatchComplete || Community.AllProcesses == 0;
 
 	public static IEnumerator Process(string[] assetList, Action<string> statusFunction = null, string format = null, int priority = 0)
 	{
-		while (!IsReady || !ShouldContinue)
+		while (!IsReady || !ModLoader.IsBatchComplete)
 		{
 			yield return null;
 		}
@@ -27,7 +26,7 @@ internal static class FileSystem_WarmupHalt
 
 	public static bool Prefix(string[] assetList, Action<string> statusFunction, string format, int priority, ref IEnumerator __result)
 	{
-		if (AllowNative || (IsReady && ShouldContinue))
+		if (AllowNative || (IsReady && ModLoader.IsBatchComplete))
 		{
 			return true;
 		}
