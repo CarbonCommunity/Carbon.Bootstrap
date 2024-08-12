@@ -11,8 +11,7 @@ internal static class FileSystem_WarmupHalt
 {
 	internal static bool IsReady = false;
 	internal static bool AllowNative = false;
-
-	internal static bool ShouldContinue => ModLoader.IsBatchComplete || Community.Runtime.ScriptProcessor.AllPendingScriptsComplete();
+	internal static bool ShouldContinue => ModLoader.IsBatchComplete || Community.AllProcesses == 0;
 
 	public static IEnumerator Process(string[] assetList, Action<string> statusFunction = null, string format = null, int priority = 0)
 	{
