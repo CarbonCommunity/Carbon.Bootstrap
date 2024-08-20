@@ -23,6 +23,6 @@ public struct TimeMeasure : IDisposable
 	{
 		Logger.Debug($"[PROFILER] {_name} took {_watch.ElapsedMilliseconds:0}ms");
 		_watch.Reset();
-		Pool.Free(ref _watch);
+		Pool.FreeUnsafe(ref _watch);
 	}
 }

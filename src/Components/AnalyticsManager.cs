@@ -227,11 +227,11 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 		var delta = Math.Min(Math.Max( UnityEngine.Time.realtimeSinceStartup - _lastEngagement, 0f), 1800f);
 		_lastEngagement = UnityEngine.Time.realtimeSinceStartup;
 
-		var segment_cache = Pool.GetList<Dictionary<string, object>>();
+		var segment_cache = Pool.Get<List<Dictionary<string, object>>>();
 		var user_properties = PoolEx.GetDictionary<string, object>();
 		var event_parameters = PoolEx.GetDictionary<string, object>();
 		var body = PoolEx.GetDictionary<string, object>();
-		var events = Pool.GetList<Dictionary<string, object>>();
+		var events = Pool.Get<List<Dictionary<string, object>>>();
 		var events_entry = PoolEx.GetDictionary<string, object>();
 
 #if DEBUG_VERBOSE
@@ -277,8 +277,8 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 			PoolEx.FreeDictionary(ref cacheInstance);
 		}
 
-		Pool.FreeList(ref events);
-		Pool.FreeList(ref segment_cache);
+		Pool.FreeUnmanaged(ref events);
+		Pool.FreeUnmanaged(ref segment_cache);
 		PoolEx.FreeDictionary(ref events_entry);
 		PoolEx.FreeDictionary(ref user_properties);
 		PoolEx.FreeDictionary(ref event_parameters);
