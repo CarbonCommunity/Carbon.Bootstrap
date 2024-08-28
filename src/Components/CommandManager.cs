@@ -18,7 +18,7 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 
 	public bool Contains(IList<Command> factory, string command, out Command outCommand)
 	{
-		var list = Pool.GetList<Command>();
+		var list = Pool.Get<List<Command>>();
 		list.AddRange(factory);
 
 		command = command?.Trim().ToLower();
@@ -27,13 +27,13 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 		{
 			if (cmd.Name == command)
 			{
-				Pool.FreeList(ref list);
+				Pool.FreeUnmanaged(ref list);
 				outCommand = cmd;
 				return true;
 			}
 		}
 
-		Pool.FreeList(ref list);
+		Pool.FreeUnmanaged(ref list);
 		outCommand = default;
 		return false;
 	}
@@ -100,7 +100,7 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 		}
 		else
 		{
-			var list = Pool.GetList<Command>();
+			var list = Pool.Get<List<Command>>();
 			list.AddRange(RCon);
 			list.AddRange(ClientConsole);
 			list.AddRange(Chat);
@@ -115,7 +115,7 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 				}
 			}
 
-			Pool.FreeList(ref list);
+			Pool.FreeUnmanaged(ref list);
 		}
 	}
 
@@ -181,7 +181,10 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 
 			void Print(string reply, BasePlayer player)
 			{
-				if (string.IsNullOrEmpty(reply)) return;
+				if (string.IsNullOrEmpty(reply))
+				{
+					return;
+				}
 
 				if (player != null)
 				{
@@ -197,7 +200,7 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 				}
 			}
 
-			args.Dispose();
+			Pool.Free(ref args);
 			return true;
 		}
 		catch (Exception ex)
