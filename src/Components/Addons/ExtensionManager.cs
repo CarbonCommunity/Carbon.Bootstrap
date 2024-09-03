@@ -392,8 +392,6 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 				Harmony.ModHooks.Remove(item.Key.Assembly);
 				Logger.Log($"Unloaded '{Path.GetFileNameWithoutExtension(item.Value.Key)}' HarmonyMod with {unpatchCount:n0} {unpatchCount.Plural("patch", "patches")}");
 
-				Assemblies.Harmony.Unload(Path.GetFileNameWithoutExtension(file));
-
 				mods.Clear();
 
 				_loaded.RemoveAll(x => x.File == item.Value.Key);
@@ -422,8 +420,6 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 					Carbon.Bootstrap.Events
 						.Trigger(CarbonEvent.ExtensionUnloadFailed, new CarbonEventArgs(file));
 				}
-
-				Assemblies.Extensions.Unload(Path.GetFileNameWithoutExtension(file));
 
 				_loaded.Remove(item);
 

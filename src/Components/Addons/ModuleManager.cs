@@ -307,8 +307,6 @@ internal sealed class ModuleManager : AddonManager
 				.Trigger(CarbonEvent.ModuleUnloadFailed, new ModuleEventArgs(file, (IModulePackage)item.Addon, null));
 		}
 
-		Assemblies.Modules.Unload(Path.GetFileNameWithoutExtension(file));
-
 		_loaded.Remove(item);
 	}
 
