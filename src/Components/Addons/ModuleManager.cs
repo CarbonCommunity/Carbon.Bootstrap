@@ -205,8 +205,8 @@ internal sealed class ModuleManager : AddonManager
 		result = Assembly.Load(bytes);
 		ModuleAssemblyCache[result.FullName] = result;
 
-		MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Module, result, Path.GetFileNameWithoutExtension(file));
-		Assemblies.Modules.Update(Path.GetFileNameWithoutExtension(file), result, file);
+		var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Module, result, Path.GetFileNameWithoutExtension(file));
+		Assemblies.Modules.Update(Path.GetFileNameWithoutExtension(file), result, file, isProfiled);
 
 		if (AssemblyManager.IsType<IModulePackage>(result, out var types))
 		{
@@ -307,7 +307,7 @@ internal sealed class ModuleManager : AddonManager
 				.Trigger(CarbonEvent.ModuleUnloadFailed, new ModuleEventArgs(file, (IModulePackage)item.Addon, null));
 		}
 
-		Assemblies.Modules.Eliminate(Path.GetFileNameWithoutExtension(file));
+		Assemblies.Modules.Unload(Path.GetFileNameWithoutExtension(file));
 
 		_loaded.Remove(item);
 	}
