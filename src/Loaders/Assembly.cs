@@ -106,34 +106,38 @@ internal sealed class AssemblyLoader : IDisposable
 			return cache;
 		}
 
-		Assembly asm;
+		Assembly result;
 
 		if (IndexOf(raw, new byte[4] { 0x01, 0xdc, 0x7f, 0x01 }) == 0)
 		{
 			byte[] checksum = new byte[20];
 			Buffer.BlockCopy(raw, 4, checksum, 0, 20);
-			asm = Assembly.Load(Package(checksum, raw, 24));
+			result = Assembly.Load(Package(checksum, raw, 24));
 		}
 		else
 		{
-			asm = Assembly.Load(raw);
+			result = Assembly.Load(raw);
 		}
 
 		switch (extensionType)
 		{
 			case IExtensionManager.ExtensionTypes.HarmonyMod:
 			case IExtensionManager.ExtensionTypes.HarmonyModHotload:
-				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, asm, Path.GetFileNameWithoutExtension(file), true);
-				Assemblies.Harmony.Update(Path.GetFileNameWithoutExtension(file), asm, file);
+			{
+				var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, result, Path.GetFileNameWithoutExtension(file), true);
+				Assemblies.Harmony.Update(Path.GetFileNameWithoutExtension(file), result, file, isProfiled);
 
 				if (!converted)
 				{
 					var hooks = new List<object>();
-					var patchCount = Harmony.PatchAll(asm);
+					var patchCount = Harmony.PatchAll(result);
 
-					foreach (var type in asm.GetTypes())
+					foreach (var type in result.GetTypes())
 					{
-						if (type.GetInterfaces().All(x => x.Name != "IHarmonyModHooks")) continue;
+						if (type.GetInterfaces().All(x => x.Name != "IHarmonyModHooks"))
+						{
+							continue;
+						}
 
 						try
 						{
@@ -167,21 +171,25 @@ internal sealed class AssemblyLoader : IDisposable
 					}
 
 					Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {patchCount:n0} {patchCount.Plural("patch", "patches")}");
-					Harmony.ModHooks.Add(asm, hooks);
+					Harmony.ModHooks.Add(result, hooks);
 				}
 
 				break;
+			}
+			
 
 			case IExtensionManager.ExtensionTypes.Extension:
-				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, asm, Path.GetFileNameWithoutExtension(file));
-				Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), asm, file);
+			{
+				var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
+				Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), result, file);
 				break;
+			}
 		}
 
-		cache = new Item { Name = file, Raw = raw, Assembly = asm };
+		cache = new Item { Name = file, Raw = raw, Assembly = result };
 		_cache.Add(sha1, cache);
 
-		Logger.Debug($"Loaded assembly: '{asm.GetName().Name}' v{asm.GetName().Version}");
+		Logger.Debug($"Loaded assembly: '{result.GetName().Name}' v{result.GetName().Version}");
 		return cache;
 	}
 
