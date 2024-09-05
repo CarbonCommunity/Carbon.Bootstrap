@@ -290,8 +290,8 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 
 		ExtensionAssemblyCache[result.FullName] = result;
 
-		MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
-		Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), result, file);
+		var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
+		Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), result, file, isProfiled);
 
 		if (AssemblyManager.IsType<ICarbonExtension>(result, out var types))
 		{
@@ -392,8 +392,6 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 				Harmony.ModHooks.Remove(item.Key.Assembly);
 				Logger.Log($"Unloaded '{Path.GetFileNameWithoutExtension(item.Value.Key)}' HarmonyMod with {unpatchCount:n0} {unpatchCount.Plural("patch", "patches")}");
 
-				Assemblies.Harmony.Eliminate(Path.GetFileNameWithoutExtension(file));
-
 				mods.Clear();
 
 				_loaded.RemoveAll(x => x.File == item.Value.Key);
@@ -422,8 +420,6 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 					Carbon.Bootstrap.Events
 						.Trigger(CarbonEvent.ExtensionUnloadFailed, new CarbonEventArgs(file));
 				}
-
-				Assemblies.Extensions.Eliminate(Path.GetFileNameWithoutExtension(file));
 
 				_loaded.Remove(item);
 
