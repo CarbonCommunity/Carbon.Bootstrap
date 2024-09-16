@@ -31,6 +31,17 @@ internal sealed class AssemblyLoader : IDisposable
 		Context.CarbonExtensions,
 	};
 
+	internal byte[] _checksumBuffer = new byte[20];
+	internal IReadOnlyList<byte> _needleBuffer = [0x01, 0xdc, 0x7f, 0x01];
+
+	internal void ResetChechsum()
+	{
+		for (int i = 0; i < _checksumBuffer.Length; i++)
+		{
+			_checksumBuffer[i] = default;
+		}
+	}
+
 	internal IAssemblyCache Load(string file, string requester,
 		string[] directories, IReadOnlyList<string> blackList, IReadOnlyList<string> whiteList, IExtensionManager.ExtensionTypes extensionType = IExtensionManager.ExtensionTypes.Default)
 	{
@@ -106,34 +117,39 @@ internal sealed class AssemblyLoader : IDisposable
 			return cache;
 		}
 
-		Assembly asm;
+		Assembly result;
 
-		if (IndexOf(raw, new byte[4] { 0x01, 0xdc, 0x7f, 0x01 }) == 0)
+		if (IndexOf(raw, _needleBuffer) == 0)
 		{
-			byte[] checksum = new byte[20];
-			Buffer.BlockCopy(raw, 4, checksum, 0, 20);
-			asm = Assembly.Load(Package(checksum, raw, 24));
+			ResetChechsum();
+			Buffer.BlockCopy(raw, 4, _checksumBuffer, 0, 20);
+			result = Assembly.Load(Package(_checksumBuffer, raw, 24));
 		}
 		else
 		{
-			asm = Assembly.Load(raw);
+			result = Assembly.Load(raw);
 		}
 
 		switch (extensionType)
 		{
 			case IExtensionManager.ExtensionTypes.HarmonyMod:
 			case IExtensionManager.ExtensionTypes.HarmonyModHotload:
-				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, asm, Path.GetFileNameWithoutExtension(file), true);
-				Assemblies.Harmony.Update(Path.GetFileNameWithoutExtension(file), asm, file);
+			{
+				var fileName = Path.GetFileNameWithoutExtension(file);
+				var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, result, Path.GetFileNameWithoutExtension(file), true);
+				Assemblies.Harmony.Update(fileName, result, file, isProfiled);
 
 				if (!converted)
 				{
 					var hooks = new List<object>();
-					var patchCount = Harmony.PatchAll(asm);
+					var patchCount = Harmony.PatchAll(result, fileName);
 
-					foreach (var type in asm.GetTypes())
+					foreach (var type in result.GetTypes())
 					{
-						if (type.GetInterfaces().All(x => x.Name != "IHarmonyModHooks")) continue;
+						if (type.GetInterfaces().All(x => x.Name != "IHarmonyModHooks"))
+						{
+							continue;
+						}
 
 						try
 						{
@@ -167,21 +183,25 @@ internal sealed class AssemblyLoader : IDisposable
 					}
 
 					Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {patchCount:n0} {patchCount.Plural("patch", "patches")}");
-					Harmony.ModHooks.Add(asm, hooks);
+					Harmony.ModHooks.Add(result, hooks);
 				}
 
 				break;
+			}
+			
 
 			case IExtensionManager.ExtensionTypes.Extension:
-				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, asm, Path.GetFileNameWithoutExtension(file));
-				Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), asm, file);
+			{
+				var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
+				Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), result, file);
 				break;
+			}
 		}
 
-		cache = new Item { Name = file, Raw = raw, Assembly = asm };
+		cache = new Item { Name = file, Raw = raw, Assembly = result };
 		_cache.Add(sha1, cache);
 
-		Logger.Debug($"Loaded assembly: '{asm.GetName().Name}' v{asm.GetName().Version}");
+		Logger.Debug($"Loaded assembly: '{result.GetName().Name}' v{result.GetName().Version}");
 		return cache;
 	}
 
@@ -192,10 +212,14 @@ internal sealed class AssemblyLoader : IDisposable
 
 	internal static byte[] Package(IReadOnlyList<byte> a, IReadOnlyList<byte> b, int c = 0)
 	{
-		byte[] retvar = new byte[b.Count - c];
+		var buffer = new byte[b.Count - c];
+
 		for (int i = c; i < b.Count; i++)
-			retvar[i - c] = (byte)(b[i] ^ a[(i - c) % a.Count]);
-		return retvar;
+		{
+			buffer[i - c] = (byte)(b[i] ^ a[(i - c) % a.Count]);
+		}
+
+		return buffer;
 	}
 
 	internal static int IndexOf(IReadOnlyList<byte> haystack, IReadOnlyList<byte> needle)
@@ -207,7 +231,13 @@ internal sealed class AssemblyLoader : IDisposable
 		{
 			int k = 0;
 			for (; k < len; k++)
-				if (needle[k] != haystack[i + k]) break;
+			{
+				if (needle[k] != haystack[i + k])
+				{
+					break;
+				}
+			}
+
 			if (k == len) return i;
 		}
 		return -1;
