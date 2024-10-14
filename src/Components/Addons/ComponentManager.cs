@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using API.Assembly;
 using API.Events;
+using Facepunch;
 using Utility;
 
 namespace Components;
@@ -64,8 +65,10 @@ internal sealed class ComponentManager : AddonManager
 								component.Awake(EventArgs.Empty);
 								component.OnLoaded(EventArgs.Empty);
 
-								Carbon.Bootstrap.Events
-									.Trigger(CarbonEvent.ComponentLoaded, new CarbonEventArgs(file));
+								var arg = Pool.Get<CarbonEventArgs>();
+								arg.Init(file);
+								Carbon.Bootstrap.Events.Trigger(CarbonEvent.ComponentLoaded, arg);
+								Pool.Free(ref arg);
 
 								_loaded.Add(new() { Addon = component, File = file });
 							}
