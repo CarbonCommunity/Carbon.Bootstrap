@@ -11,6 +11,7 @@ using Carbon;
 using Carbon.Components;
 using Carbon.Extensions;
 using Carbon.Profiler;
+using Facepunch;
 using Facepunch.Extend;
 using Loaders;
 using Mono.Cecil;
@@ -218,22 +219,23 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 		{
 			if (item.CanHotload)
 			{
-				var arg = new CarbonEventArgs(item.File);
-
+				var arg2 = Pool.Get<CarbonEventArgs>();
+				arg2.Init(item.File);
+			
 				try
 				{
-					item.Addon.OnUnloaded(arg);
+					item.Addon.OnUnloaded(arg2);
 
-					Carbon.Bootstrap.Events
-						.Trigger(CarbonEvent.ExtensionUnloaded, arg);
+					Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloaded, arg2);
 				}
 				catch (Exception ex)
 				{
 					Logger.Error($"Couldn't unload extension '{item.File}'", ex);
 
-					Carbon.Bootstrap.Events
-						.Trigger(CarbonEvent.ExtensionUnloadFailed, arg);
+					Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloadFailed, arg2);
 				}
+
+				Pool.Free(ref arg2);
 			}
 			else
 			{
@@ -331,25 +333,28 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 			return null;
 		}
 
+		var arg = Pool.Get<CarbonEventArgs>();
+		arg.Init(file);
+
 		try
 		{
-			var arg = new CarbonEventArgs(file);
 			var isHotloadable = item.Addon.GetType().HasAttribute(typeof(HotloadableAttribute));
 			item.CanHotload = isHotloadable;
 
 			extension.Awake(arg);
 			extension.OnLoaded(arg);
 
-			Carbon.Bootstrap.Events
-				.Trigger(CarbonEvent.ExtensionLoaded, new CarbonEventArgs(file));
+			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionLoaded, arg);
+
 		}
 		catch (Exception e)
 		{
 			Logger.Error($"Failed to instantiate module from type '{assemblyName}' [{file}]", e);
 
-			Carbon.Bootstrap.Events
-				.Trigger(CarbonEvent.ExtensionLoadFailed, new CarbonEventArgs(file));
+			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionLoadFailed, arg);
 		}
+
+		Pool.Free(ref arg);
 
 		void Dispose()
 		{
@@ -400,6 +405,8 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 			case IExtensionManager.ExtensionTypes.Extension:
 			{
 				var item = _loaded.FirstOrDefault(x => x.File == file);
+				var arg = Pool.Get<CarbonEventArgs>();
+				arg.Init(file);
 
 				try
 				{
@@ -408,8 +415,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 						return;
 					}
 
-					Carbon.Bootstrap.Events
-						.Trigger(CarbonEvent.ExtensionUnloaded, new CarbonEventArgs(file));
+					Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloaded, arg);
 
 					item.Addon.OnUnloaded(EventArgs.Empty);
 				}
@@ -417,9 +423,10 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 				{
 					Logger.Error($"Failed unloading extension '{file}' (requested by {requester})", ex);
 
-					Carbon.Bootstrap.Events
-						.Trigger(CarbonEvent.ExtensionUnloadFailed, new CarbonEventArgs(file));
+					Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloadFailed, arg);
 				}
+
+				Pool.Free(ref arg);
 
 				_loaded.Remove(item);
 

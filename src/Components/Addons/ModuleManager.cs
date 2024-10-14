@@ -133,22 +133,23 @@ internal sealed class ModuleManager : AddonManager
 		{
 			if (item.CanHotload)
 			{
-				var arg = new ModuleEventArgs(item.File, item.Addon as IModulePackage, null);
+				var arg = Pool.Get<ModuleEventArgs>();
+				arg.Init(item.File, item.Addon as IModulePackage, null);
 
                 try
                 {
                 	item.Addon.OnUnloaded(EventArgs.Empty);
 
-                	Carbon.Bootstrap.Events
-                		.Trigger(CarbonEvent.ModuleUnloaded, arg);
+                	Carbon.Bootstrap.Events.Trigger(CarbonEvent.ModuleUnloaded, arg);
                 }
                 catch (Exception ex)
                 {
                 	Logger.Error($"Couldn't unload module '{item.File}'", ex);
 
-                	Carbon.Bootstrap.Events
-                		.Trigger(CarbonEvent.ModuleUnloadFailed, arg);
+                	Carbon.Bootstrap.Events.Trigger(CarbonEvent.ModuleUnloadFailed, arg);
                 }
+
+				Pool.Free(ref arg);
 			}
 			else
 			{
@@ -248,22 +249,30 @@ internal sealed class ModuleManager : AddonManager
 
 		try
 		{
-			var arg = new CarbonEventArgs(file);
+			var arg = Pool.Get<CarbonEventArgs>();
+			arg.Init(file);
+
 			var isHotloadable = item.Addon.GetType().HasAttribute(typeof(HotloadableAttribute));
 			item.CanHotload = isHotloadable;
 
 			module.Awake(arg);
 			module.OnLoaded(arg);
 
-			Carbon.Bootstrap.Events
-				.Trigger(CarbonEvent.ModuleLoaded, new ModuleEventArgs(file, module, item.Shared));
+			Pool.Free(ref arg);
+
+			var arg2 = Pool.Get<ModuleEventArgs>();
+			arg2.Init(file, module, item.Shared);
+			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ModuleLoaded, arg2);
+			Pool.Free(ref arg2);
 		}
 		catch (Exception e)
 		{
 			Logger.Error($"Failed to instantiate module from type '{assemblyName}' [{file}]", e);
 
-			Carbon.Bootstrap.Events
-				.Trigger(CarbonEvent.ModuleLoadFailed, new ModuleEventArgs(file, module, item.Shared));
+			var arg2 = Pool.Get<ModuleEventArgs>();
+			arg2.Init(file, module, item.Shared);
+			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ModuleLoadFailed, arg2);
+			Pool.Free(ref arg2);
 		}
 
 		Dispose();
@@ -294,8 +303,10 @@ internal sealed class ModuleManager : AddonManager
 				return;
 			}
 
-			Carbon.Bootstrap.Events
-				.Trigger(CarbonEvent.ModuleUnloaded, new ModuleEventArgs(file, (IModulePackage)item.Addon, null));
+			var arg = Pool.Get<ModuleEventArgs>();
+			arg.Init(file, (IModulePackage)item.Addon, null);
+			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ModuleUnloaded, arg);
+			Pool.Free(ref arg);
 
 			item.Addon.OnUnloaded(EventArgs.Empty);
 		}
@@ -303,8 +314,10 @@ internal sealed class ModuleManager : AddonManager
 		{
 			Logger.Error($"Failed unloading module '{file}' (requested by {requester})", ex);
 
-			Carbon.Bootstrap.Events
-				.Trigger(CarbonEvent.ModuleUnloadFailed, new ModuleEventArgs(file, (IModulePackage)item.Addon, null));
+			var arg = Pool.Get<ModuleEventArgs>();
+			arg.Init(file, (IModulePackage)item.Addon, null);
+			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ModuleUnloadFailed, arg);
+			Pool.Free(ref arg);
 		}
 
 		_loaded.Remove(item);

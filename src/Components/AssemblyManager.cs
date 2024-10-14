@@ -154,6 +154,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"System.Management",
 		"System.Net.Http",
 		"System.Memory",
+		"System.Runtime.CompilerServices.Unsafe",
 		"System.Runtime",
 		"System.Threading.Tasks.Extensions",
 		"System.Xml.Linq",
@@ -162,10 +163,11 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"System",
 
 		"Carbon.Common",
+		"Carbon.Common.Client",
 		"Carbon.SDK",
 		"Carbon.Test",
 
-		"MySql.Data", // v6.9.5.0
+		"MySql.Data",
 		"protobuf-net.Core",
 		"protobuf-net",
 		"websocket-sharp", // ws client/server
