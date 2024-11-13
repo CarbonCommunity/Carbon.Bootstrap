@@ -141,6 +141,8 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 	public string SystemID
 	{ get => UnityEngine.SystemInfo.deviceUniqueIdentifier; }
 
+	public WebClient Client { get; set; }
+
 	public Dictionary<string, object> Segments { get; set; }
 
 	public void Awake()
@@ -194,18 +196,24 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 
 	public void SendEvent(string eventName)
 	{
-		if (!enabled) return;
+		if (!enabled)
+		{
+			return;
+		}
 
-		float delta = Math.Min(Math.Max(
-			UnityEngine.Time.realtimeSinceStartup - _lastEngagement, 0f), float.MaxValue);
+		float delta = Math.Min(Math.Max(UnityEngine.Time.realtimeSinceStartup - _lastEngagement, 0f), float.MaxValue);
 		_lastEngagement = UnityEngine.Time.realtimeSinceStartup;
 
-		string url = "https://www.google-analytics.com/g/collect";
+		const string url = "https://www.google-analytics.com/g/collect";
 		string query = $"v=2&tid={MeasurementID}&cid={ClientID}&en={eventName}";
 
 		if (delta >= 1800f)
 		{
-			if (delta == float.MaxValue) delta = 0;
+			if (delta == float.MaxValue)
+			{
+				delta = 0;
+			}
+
 			SessionID = Util.GetRandomNumber(10);
 			query += $"&_ss=1";
 			_sessions++;
@@ -222,17 +230,20 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 
 	private void SendMPEvent(string eventName)
 	{
-		if (!enabled) return;
+		if (!enabled)
+		{
+			return;
+		}
 
 		var delta = Math.Min(Math.Max( UnityEngine.Time.realtimeSinceStartup - _lastEngagement, 0f), 1800f);
 		_lastEngagement = UnityEngine.Time.realtimeSinceStartup;
 
 		var segment_cache = Pool.Get<List<Dictionary<string, object>>>();
-		var user_properties = PoolEx.GetDictionary<string, object>();
-		var event_parameters = PoolEx.GetDictionary<string, object>();
-		var body = PoolEx.GetDictionary<string, object>();
+		var user_properties = Pool.Get<Dictionary<string, object>>();
+		var event_parameters = Pool.Get<Dictionary<string, object>>();
+		var body = Pool.Get<Dictionary<string, object>>();
 		var events = Pool.Get<List<Dictionary<string, object>>>();
-		var events_entry = PoolEx.GetDictionary<string, object>();
+		var events_entry = Pool.Get<Dictionary<string, object>>();
 
 #if DEBUG_VERBOSE
 		event_parameters["debug_mode"] = 1;
@@ -259,7 +270,7 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 		{
 			foreach (var segment in Segments)
 			{
-				var tempDictionary = PoolEx.GetDictionary<string, object>();
+				var tempDictionary = Pool.Get<Dictionary<string, object>>();
 				tempDictionary["value"] = segment.Value;
 
 				user_properties[segment.Key] = tempDictionary;
@@ -274,15 +285,15 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 		foreach (var cache in segment_cache)
 		{
 			var cacheInstance = cache;
-			PoolEx.FreeDictionary(ref cacheInstance);
+			Pool.FreeUnmanaged(ref cacheInstance);
 		}
 
 		Pool.FreeUnmanaged(ref events);
 		Pool.FreeUnmanaged(ref segment_cache);
-		PoolEx.FreeDictionary(ref events_entry);
-		PoolEx.FreeDictionary(ref user_properties);
-		PoolEx.FreeDictionary(ref event_parameters);
-		PoolEx.FreeDictionary(ref body);
+		Pool.FreeUnmanaged(ref events_entry);
+		Pool.FreeUnmanaged(ref user_properties);
+		Pool.FreeUnmanaged(ref event_parameters);
+		Pool.FreeUnmanaged(ref body);
 	}
 
 	private void SendRequest(string url, string body = null)
@@ -291,50 +302,15 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 		{
 			body ??= string.Empty;
 
-			using WebClient webClient = new WebClient();
-			webClient.Headers.Add(HttpRequestHeader.UserAgent, UserAgent);
-			webClient.Headers.Add(HttpRequestHeader.ContentType, "application/json");
-			webClient.UploadStringCompleted += UploadStringCompleted;
-			webClient.UploadStringAsync(new Uri(url), "POST", body, url);
+			if (Client == null)
+			{
+				Client = new();
+				Client.Headers.Add(HttpRequestHeader.UserAgent, UserAgent);
+				Client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+			}
 
-#if DEBUG_VERBOSE
-			Logger.Debug($"Request sent to Google Analytics");
-			Logger.Debug($" > {url}");
-#endif
+			Client.UploadStringAsync(new Uri(url), "POST", body, url);
 		}
-#if DEBUG_VERBOSE
-		catch (System.Exception e)
-		{
-			Logger.Warn($"Failed to send request to Google Analytics ({e.Message})");
-			Logger.Debug($" > {url}");
-		}
-#else
 		catch (System.Exception) { }
-#endif
-	}
-
-	private void UploadStringCompleted(object sender, UploadStringCompletedEventArgs e)
-	{
-		WebClient webClient = (WebClient)sender;
-		string url = (string)e.UserState;
-
-		try
-		{
-			if (e.Error != null) throw new Exception(e.Error.Message);
-			if (e.Cancelled) throw new Exception("Job was cancelled");
-		}
-#if DEBUG_VERBOSE
-		catch (System.Exception ex)
-		{
-			Logger.Warn($"Failed to send request to Google Analytics ({ex.Message})");
-			Logger.Debug($" > {url}");
-		}
-#else
-		catch (System.Exception) { }
-#endif
-		finally
-		{
-			webClient.Dispose();
-		}
 	}
 }
