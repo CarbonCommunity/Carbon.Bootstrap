@@ -102,7 +102,10 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 					return;
 				}
 
-				_created.Add(file);
+				if (!_created.Contains(file) && !_changed.Contains(file) && !_deleted.Contains(file))
+				{
+					_created.Add(file);
+				}
 			},
 			OnFileChanged = (sender, file) =>
 			{
@@ -111,7 +114,10 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 					return;
 				}
 
-				_changed.Add(file);
+				if (!_created.Contains(file) && !_changed.Contains(file) && !_deleted.Contains(file))
+				{
+					_changed.Add(file);
+				}
 			},
 			OnFileDeleted = (sender, file) =>
 			{
@@ -120,7 +126,10 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 					return;
 				}
 
-				_deleted.Add(file);
+				if (!_created.Contains(file) && !_changed.Contains(file) && !_deleted.Contains(file))
+				{
+					_deleted.Add(file);
+				}
 			}
 		});
 
@@ -128,7 +137,7 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 		Watcher.TriggerAll(WatcherChangeTypes.Created);
 	}
 
-	internal void Update()
+	internal void FixedUpdate()
 	{
 		foreach (var file in _created)
 		{

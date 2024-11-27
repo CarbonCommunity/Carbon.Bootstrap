@@ -41,7 +41,7 @@ internal sealed class FileWatcherManager : CarbonBehaviour, IFileWatcherManager,
 
 		try
 		{
-			WatchFolder item = _watchlist.Single(x => x.Directory == Path.GetDirectoryName(e.FullPath));
+			WatchFolder item = _watchlist.Single(x => x.Directory.Equals(Path.GetDirectoryName(e.FullPath)));
 
 			switch (e.ChangeType)
 			{
@@ -78,11 +78,8 @@ internal sealed class FileWatcherManager : CarbonBehaviour, IFileWatcherManager,
 			{
 				item.Handler = new FileSystemWatcher(item.Directory)
 				{
-					Filter =
-						item.Extension,
-
-					NotifyFilter =
-						NotifyFilters.FileName | NotifyFilters.LastWrite
+					Filter = item.Extension,
+					NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite
 				};
 
 				item.Handler.Changed += FileSystemEvent;

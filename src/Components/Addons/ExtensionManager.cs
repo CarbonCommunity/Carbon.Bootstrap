@@ -110,7 +110,10 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 					return;
 				}
 
-				_created.Add(file);
+				if (!_created.Contains(file) && !_changed.Contains(file) && !_deleted.Contains(file))
+				{
+					_created.Add(file);
+				}
 			},
 			OnFileChanged = (sender, file) =>
 			{
@@ -119,7 +122,10 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 					return;
 				}
 
-				_changed.Add(file);
+				if (!_created.Contains(file) && !_changed.Contains(file) && !_deleted.Contains(file))
+				{
+					_changed.Add(file);
+				}
 			},
 			OnFileDeleted = (sender, file) =>
 			{
@@ -128,34 +134,60 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 					return;
 				}
 
-				_deleted.Add(file);
+				if (!_created.Contains(file) && !_changed.Contains(file) && !_deleted.Contains(file))
+				{
+					_deleted.Add(file);
+				}
 			}
 		});
 
 		Watcher.Handler.EnableRaisingEvents = false;
 	}
 
-	internal void Update()
+	internal void FixedUpdate()
 	{
 		foreach (var file in _created)
 		{
-			Load(file, "ExtensionManager.Created");
+			try
+			{
+				Load(file, "ExtensionManager.Created");
+			}
+			catch (Exception ex)
+			{
+				Logger.Error(ex);
+			}
 		}
 
 		foreach (var file in _changed)
 		{
-			Load(file, "ExtensionManager.Changed");
+			try
+			{
+				Unload(file, "ExtensionManager.Changed");
+				Load(file, "ExtensionManager.Changed");
+			}
+			catch (Exception ex)
+			{
+				Logger.Error(ex);
+			}
 		}
 
 		foreach (var file in _deleted)
 		{
-			Unload(file, "ExtensionManager.Deleted");
+			try
+			{
+				Unload(file, "ExtensionManager.Deleted");
+			}
+			catch (Exception ex)
+			{
+				Logger.Error(ex);
+			}
 		}
 
 		_created.Clear();
 		_changed.Clear();
 		_deleted.Clear();
 	}
+
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public override Assembly Load(string file, string requester = null)
 	{
