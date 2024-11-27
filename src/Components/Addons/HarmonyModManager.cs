@@ -6,17 +6,11 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using API.Assembly;
-using API.Events;
 using Carbon;
 using Carbon.Components;
 using Carbon.Extensions;
 using Carbon.Profiler;
-using Facepunch;
-using Facepunch.Extend;
-using Loaders;
 using Mono.Cecil;
-using Steamworks.Data;
-using UnityEngine;
 using Utility;
 using Logger = Utility.Logger;
 
@@ -136,20 +130,41 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 
 	internal void Update()
 	{
-		foreach(var file in _created)
+		foreach (var file in _created)
 		{
-			Load(file, "HarmonyModManager.Created");
+			try
+			{
+				Load(file, "HarmonyModManager.Created");
+			}
+			catch (Exception ex)
+			{
+				Logger.Error(ex);
+			}
 		}
 
 		foreach (var file in _changed)
 		{
-			Unload(file, "HarmonyModManager.Changed");
-			Load(file, "HarmonyModManager.Changed");
+			try
+			{
+				Unload(file, "HarmonyModManager.Changed");
+				Load(file, "HarmonyModManager.Changed");
+			}
+			catch (Exception ex)
+			{
+				Logger.Error(ex);
+			}
 		}
 
 		foreach (var file in _deleted)
 		{
-			Unload(file, "HarmonyModManager.Deleted");
+			try
+			{
+				Unload(file, "HarmonyModManager.Deleted");
+			}
+			catch (Exception ex)
+			{
+				Logger.Error(ex);
+			}
 		}
 
 		_created.Clear();
@@ -167,17 +182,15 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 		}
 
 		var definition = (AssemblyDefinition)null;
-		var stream = (MemoryStream)null;
 		var assemblyName = string.Empty;
-		var result = (Assembly)null;
 
 		if (File.Exists(file))
 		{
 			switch (Path.GetExtension(file))
 			{
 				case ".dll":
-					stream = new MemoryStream(File.ReadAllBytes(file));
-
+				{
+					var stream = new MemoryStream(File.ReadAllBytes(file));
 					var assembly = AssemblyDefinition.ReadAssembly(stream, ReadingParameters);
 					assemblyName = assembly.Name.Name;
 
@@ -195,36 +208,68 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 
 					definition = assembly;
 					break;
+				}
 			}
 		}
 
 		if (definition == null || string.IsNullOrEmpty(assemblyName))
 		{
-			Dispose();
 			return null;
 		}
 
-		using MemoryStream memoryStream = new MemoryStream();
-		definition.Write(memoryStream);
-		memoryStream.Position = 0;
-		definition.Dispose();
+		var result = _loader.Load(file, requester, _directories, AssemblyManager.RefBlacklist, null, IExtensionManager.ExtensionTypes.HarmonyMod)?.Assembly;
 
-		var bytes = memoryStream.ToArray();
-		result = _loader.Load(file, requester, _directories, AssemblyManager.RefBlacklist, null, IExtensionManager.ExtensionTypes.HarmonyMod)?.Assembly;
+		var fileName = Path.GetFileNameWithoutExtension(file);
+		var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, result, Path.GetFileNameWithoutExtension(file), true);
+		Assemblies.Harmony.Update(fileName, result, file, isProfiled);
 
-		var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
-		Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), result, file, isProfiled);
+		var hooks = new List<IHarmonyModHooks>();
+		var patchCount = Harmony.PatchAll(result, fileName);
+
+		foreach (var type in result.GetTypes())
+		{
+			if (!typeof(IHarmonyModHooks).IsAssignableFrom(type))
+			{
+				continue;
+			}
+
+			try
+			{
+				if (Activator.CreateInstance(type) is not IHarmonyModHooks mod)
+				{
+					Logger.Error($"Failed to create hook instance: Is null ({file} -> {requester})");
+				}
+				else
+				{
+					hooks.Add(mod);
+				}
+			}
+			catch (Exception ex)
+			{
+				Logger.Error($"Failed to create hook instance ({file} -> {requester})", ex);
+			}
+		}
+
+		foreach (var hook in hooks)
+		{
+			try
+			{
+				hook.OnLoaded(new OnHarmonyModLoadedArgs());
+			}
+			catch (Exception ex)
+			{
+				Logger.Error($"Failed run OnLoaded ({file} -> {requester})", ex);
+			}
+		}
+
+		Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(file)}' HarmonyMod with {patchCount:n0} {patchCount.Plural("patch", "patches")}");
+		Harmony.ModHooks.Add(result, hooks);
 
 		_loaded.Add(new Item
 		{
 			File = file,
 			Types = [result.GetTypes()[0]]
 		});
-
-		void Dispose()
-		{
-			stream?.Dispose();
-		}
 
 		return result;
 	}

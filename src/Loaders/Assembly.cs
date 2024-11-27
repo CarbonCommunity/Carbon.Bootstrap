@@ -132,60 +132,6 @@ internal sealed class AssemblyLoader : IDisposable
 
 		switch (extensionType)
 		{
-			case IExtensionManager.ExtensionTypes.HarmonyMod:
-			{
-				var fileName = Path.GetFileNameWithoutExtension(file);
-				var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, result, Path.GetFileNameWithoutExtension(file), true);
-				Assemblies.Harmony.Update(fileName, result, file, isProfiled);
-
-				var hooks = new List<IHarmonyModHooks>();
-				var patchCount = Harmony.PatchAll(result, fileName);
-
-				foreach (var type in result.GetTypes())
-				{
-					if (!typeof(IHarmonyModHooks).IsAssignableFrom(type))
-					{
-						continue;
-					}
-
-					try
-					{
-						var mod = Activator.CreateInstance(type) as IHarmonyModHooks;
-
-						if (mod == null)
-						{
-							Logger.Error($"Failed to create hook instance: Is null ({path} -> {requester})");
-						}
-						else
-						{
-							hooks.Add(mod);
-						}
-					}
-					catch (Exception ex)
-					{
-						Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
-					}
-				}
-
-				foreach (var hook in hooks)
-				{
-					try
-					{
-						hook.OnLoaded(new OnHarmonyModLoadedArgs());
-					}
-					catch (Exception ex)
-					{
-						Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
-					}
-				}
-
-				Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {patchCount:n0} {patchCount.Plural("patch", "patches")}");
-				Harmony.ModHooks.Add(result, hooks);
-
-				break;
-			}
-			
-
 			case IExtensionManager.ExtensionTypes.Extension:
 			{
 				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
