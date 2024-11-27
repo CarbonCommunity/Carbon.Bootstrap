@@ -39,14 +39,9 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		gameObject.AddComponent<EventManager>();
 		Components = gameObject.AddComponent<ComponentManager>();
 		Extensions = gameObject.AddComponent<ExtensionManager>();
-		HarmonyMods = gameObject.AddComponent<HarmonyModManager>();
 		Hooks = gameObject.AddComponent<HookManager>();
 		Modules = gameObject.AddComponent<ModuleManager>();
 		gameObject.AddComponent<CompatManager>();
-
-#if EXPERIMENTAL
-		gameObject.AddComponent<PluginManager>();
-#endif
 
 #if DEBUG
 		Carbon.Bootstrap.Commands.RegisterCommand(new Command.RCon
@@ -55,6 +50,11 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 			Callback = (arg) => CMDAssemblyInfo(arg)
 		}, out string reason);
 #endif
+	}
+
+	public void InstallHarmonyMods()
+	{
+		HarmonyMods = gameObject.AddComponent<HarmonyModManager>();
 	}
 
 	public byte[] Read(string file, string[] directories = null)

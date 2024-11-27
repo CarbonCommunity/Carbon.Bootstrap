@@ -235,8 +235,6 @@ internal sealed class ModuleManager : AddonManager
 
 					moduleTypes.Add(type);
 					item.Addon = module;
-
-					Logger.Debug($"A new instance of '{type}' created");
 				}
 			}
 

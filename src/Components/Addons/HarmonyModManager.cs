@@ -41,6 +41,10 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 	public static Resolver ResolverInstance;
 	public static ReaderParameters ReadingParameters = new() { AssemblyResolver = ResolverInstance = new Resolver()};
 
+	internal List<string> _created = [];
+	internal List<string> _changed = [];
+	internal List<string> _deleted = [];
+
 	public class Resolver : IAssemblyResolver
 	{
 		internal Dictionary<string, AssemblyDefinition> Cache = new();
@@ -104,7 +108,7 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 					return;
 				}
 
-				Load(file, "HarmonyModManager.Created");
+				_created.Add(file);
 			},
 			OnFileChanged = (sender, file) =>
 			{
@@ -113,7 +117,7 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 					return;
 				}
 
-				Load(file, "HarmonyModManager.Changed");
+				_changed.Add(file);
 			},
 			OnFileDeleted = (sender, file) =>
 			{
@@ -122,11 +126,35 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 					return;
 				}
 
-				Load(file, "HarmonyModManager.Deleted");
+				_deleted.Add(file);
 			}
 		});
 
 		Watcher.Handler.EnableRaisingEvents = false;
+		Watcher.TriggerAll(WatcherChangeTypes.Created);
+	}
+
+	internal void Update()
+	{
+		foreach(var file in _created)
+		{
+			Load(file, "HarmonyModManager.Created");
+		}
+
+		foreach (var file in _changed)
+		{
+			Unload(file, "HarmonyModManager.Changed");
+			Load(file, "HarmonyModManager.Changed");
+		}
+
+		foreach (var file in _deleted)
+		{
+			Unload(file, "HarmonyModManager.Deleted");
+		}
+
+		_created.Clear();
+		_changed.Clear();
+		_deleted.Clear();
 	}
 
 	[MethodImpl(MethodImplOptions.NoInlining)]
@@ -185,7 +213,6 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 
 		var bytes = memoryStream.ToArray();
 		result = _loader.Load(file, requester, _directories, AssemblyManager.RefBlacklist, null, IExtensionManager.ExtensionTypes.HarmonyMod)?.Assembly;
-
 
 		var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
 		Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), result, file, isProfiled);

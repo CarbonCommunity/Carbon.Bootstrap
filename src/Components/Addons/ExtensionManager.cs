@@ -26,21 +26,6 @@ namespace Components;
 
 internal sealed class ExtensionManager : AddonManager, IExtensionManager
 {
-	/*
-	 * CARBON EXTENSIONS
-	 * API.Contracts.ICarbonExtension
-	 *
-	 * An assembly to be considered as a Carbon Extension must:
-	 *   1. Implement the ICarbonExtension interface
-	 *   2. Must not change directly the world
-	 *   3. Provide additional functionality such as new features or services
-	 *
-	 * Carbon extensions are different from Oxide extensions, in Carbon extensions
-	 * are "libraries" and cannot access features such as hooks or change the
-	 * world, either directly or using reflection.
-	 *
-	 */
-
 	private readonly string[] _directories =
 	{
 		Context.CarbonExtensions,
@@ -266,8 +251,6 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 
 					moduleTypes.Add(type);
 					item.Addon = extension;
-
-					Logger.Debug($"A new instance of '{type}' created");
 				}
 			}
 

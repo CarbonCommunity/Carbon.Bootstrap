@@ -138,52 +138,49 @@ internal sealed class AssemblyLoader : IDisposable
 				var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, result, Path.GetFileNameWithoutExtension(file), true);
 				Assemblies.Harmony.Update(fileName, result, file, isProfiled);
 
-				if (!converted)
+				var hooks = new List<IHarmonyModHooks>();
+				var patchCount = Harmony.PatchAll(result, fileName);
+
+				foreach (var type in result.GetTypes())
 				{
-					var hooks = new List<IHarmonyModHooks>();
-					var patchCount = Harmony.PatchAll(result, fileName);
-
-					foreach (var type in result.GetTypes())
+					if (!typeof(IHarmonyModHooks).IsAssignableFrom(type))
 					{
-						if (!typeof(IHarmonyModHooks).IsAssignableFrom(type))
-						{
-							continue;
-						}
-
-						try
-						{
-							var mod = Activator.CreateInstance(type) as IHarmonyModHooks;
-
-							if (mod == null)
-							{
-								Logger.Error($"Failed to create hook instance: Is null ({path} -> {requester})");
-							}
-							else
-							{
-								hooks.Add(mod);
-							}
-						}
-						catch (Exception ex)
-						{
-							Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
-						}
+						continue;
 					}
 
-					foreach(var hook in hooks)
+					try
 					{
-						try
+						var mod = Activator.CreateInstance(type) as IHarmonyModHooks;
+
+						if (mod == null)
 						{
-							hook.OnLoaded(new OnHarmonyModLoadedArgs());
+							Logger.Error($"Failed to create hook instance: Is null ({path} -> {requester})");
 						}
-						catch (Exception ex)
+						else
 						{
-							Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
+							hooks.Add(mod);
 						}
 					}
-
-					Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {patchCount:n0} {patchCount.Plural("patch", "patches")}");
-					Harmony.ModHooks.Add(result, hooks);
+					catch (Exception ex)
+					{
+						Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
+					}
 				}
+
+				foreach (var hook in hooks)
+				{
+					try
+					{
+						hook.OnLoaded(new OnHarmonyModLoadedArgs());
+					}
+					catch (Exception ex)
+					{
+						Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
+					}
+				}
+
+				Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {patchCount:n0} {patchCount.Plural("patch", "patches")}");
+				Harmony.ModHooks.Add(result, hooks);
 
 				break;
 			}
@@ -191,7 +188,7 @@ internal sealed class AssemblyLoader : IDisposable
 
 			case IExtensionManager.ExtensionTypes.Extension:
 			{
-				var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
+				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
 				Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), result, file);
 				break;
 			}

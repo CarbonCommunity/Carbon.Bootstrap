@@ -62,8 +62,6 @@ internal sealed class ComponentManager : AddonManager
 									if (Activator.CreateInstance(type) is not ICarbonComponent component)
 										throw new NullReferenceException();
 
-									Logger.Debug($"A new instance of '{component}' created");
-
 									component.Awake(EventArgs.Empty);
 									component.OnLoaded(EventArgs.Empty);
 
