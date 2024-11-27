@@ -222,18 +222,20 @@ internal sealed class ModuleManager : AddonManager
 			item.Shared = result.GetTypes();
 
 			var moduleTypes = new List<Type>();
-			foreach (var type in types)
+
+			if (types != null)
 			{
-				if (!type.GetInterfaces().Contains(typeof(IModulePackage))) continue;
+				foreach (var type in types)
+				{
+					if (!type.GetInterfaces().Contains(typeof(IModulePackage))) continue;
 
-				module = Activator.CreateInstance(type) as IModulePackage;
+					module = Activator.CreateInstance(type) as IModulePackage;
 
-				Hydrate(result, module);
+					Hydrate(result, module);
 
-				moduleTypes.Add(type);
-				item.Addon = module;
-
-				Logger.Debug($"A new instance of '{type}' created");
+					moduleTypes.Add(type);
+					item.Addon = module;
+				}
 			}
 
 			item.Types = moduleTypes;
@@ -327,22 +329,19 @@ internal sealed class ModuleManager : AddonManager
 	{
 		base.Hydrate(assembly, addon);
 
-		BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+		const BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
 
 		Type logger = typeof(API.Logger.ILogger) ?? throw new Exception();
 		Type events = typeof(API.Events.IEventManager) ?? throw new Exception();
 
 		foreach (Type type in assembly.GetTypes())
 		{
-			foreach (FieldInfo item in type.GetFields(flags)
-				.Where(x => logger.IsAssignableFrom(x.FieldType)))
+			foreach (FieldInfo item in type.GetFields(flags).Where(x => logger.IsAssignableFrom(x.FieldType)))
 			{
-				item.SetValue(assembly,
-					Activator.CreateInstance(HarmonyLib.AccessTools.TypeByName("Carbon.Logger") ?? null));
+				item.SetValue(assembly, Activator.CreateInstance(HarmonyLib.AccessTools.TypeByName("Carbon.Logger") ?? null));
 			}
 
-			foreach (FieldInfo item in type.GetFields(flags)
-				.Where(x => events.IsAssignableFrom(x.FieldType)))
+			foreach (FieldInfo item in type.GetFields(flags).Where(x => events.IsAssignableFrom(x.FieldType)))
 			{
 				item.SetValue(assembly, Carbon.Bootstrap.Events);
 			}

@@ -8,6 +8,7 @@ using Carbon;
 using Carbon.Components;
 using Carbon.Extensions;
 using Carbon.Profiler;
+using UnityEngine.Experimental.AI;
 using Utility;
 using Logger = Utility.Logger;
 
@@ -97,7 +98,6 @@ internal sealed class AssemblyLoader : IDisposable
 				break;
 
 			case IExtensionManager.ExtensionTypes.HarmonyMod:
-			case IExtensionManager.ExtensionTypes.HarmonyModHotload:
 				converted = Community.Runtime.Compat.ConvertHarmonyMod(ref raw);
 
 				if (raw == null)
@@ -132,67 +132,9 @@ internal sealed class AssemblyLoader : IDisposable
 
 		switch (extensionType)
 		{
-			case IExtensionManager.ExtensionTypes.HarmonyMod:
-			case IExtensionManager.ExtensionTypes.HarmonyModHotload:
-			{
-				var fileName = Path.GetFileNameWithoutExtension(file);
-				var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, result, Path.GetFileNameWithoutExtension(file), true);
-				Assemblies.Harmony.Update(fileName, result, file, isProfiled);
-
-				if (!converted)
-				{
-					var hooks = new List<object>();
-					var patchCount = Harmony.PatchAll(result, fileName);
-
-					foreach (var type in result.GetTypes())
-					{
-						if (type.GetInterfaces().All(x => x.Name != "IHarmonyModHooks"))
-						{
-							continue;
-						}
-
-						try
-						{
-							var mod = Activator.CreateInstance(type);
-
-							if (mod == null)
-							{
-								Logger.Error($"Failed to create hook instance: Is null ({path} -> {requester})");
-							}
-							else
-							{
-								hooks.Add(mod);
-							}
-
-							if (extensionType == IExtensionManager.ExtensionTypes.HarmonyModHotload)
-							{
-								try
-								{
-									type.GetMethod("OnLoaded").Invoke(mod, new object[1]);
-								}
-								catch (Exception ex)
-								{
-									Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
-								}
-							}
-						}
-						catch (Exception ex)
-						{
-							Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
-						}
-					}
-
-					Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(path)}' HarmonyMod with {patchCount:n0} {patchCount.Plural("patch", "patches")}");
-					Harmony.ModHooks.Add(result, hooks);
-				}
-
-				break;
-			}
-			
-
 			case IExtensionManager.ExtensionTypes.Extension:
 			{
-				var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
+				MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
 				Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), result, file);
 				break;
 			}

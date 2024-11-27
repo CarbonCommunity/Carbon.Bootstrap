@@ -18,18 +18,13 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 {
 	private LibraryLoader _library;
 
-	public IReadOnlyList<string> RefBlacklist
-	{ get => _blacklistLibs; }
-
-	public IReadOnlyList<string> RefWhitelist
-	{ get => _whitelistLibs; }
+	public IReadOnlyList<string> RefBlacklist => _blacklistLibs;
+	public IReadOnlyList<string> RefWhitelist => _whitelistLibs;
 
 	public IAddonManager Components { get; private set; }
-
 	public IExtensionManager Extensions { get; private set; }
-
+	public IHarmonyModManager HarmonyMods { get; private set; }
 	public IAddonManager Hooks { get; private set; }
-
 	public IAddonManager Modules { get; private set; }
 
 #if EXPERIMENTAL
@@ -48,10 +43,6 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		Modules = gameObject.AddComponent<ModuleManager>();
 		gameObject.AddComponent<CompatManager>();
 
-#if EXPERIMENTAL
-		gameObject.AddComponent<PluginManager>();
-#endif
-
 #if DEBUG
 		Carbon.Bootstrap.Commands.RegisterCommand(new Command.RCon
 		{
@@ -59,6 +50,11 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 			Callback = (arg) => CMDAssemblyInfo(arg)
 		}, out string reason);
 #endif
+	}
+
+	public void InstallHarmonyMods()
+	{
+		HarmonyMods = gameObject.AddComponent<HarmonyModManager>();
 	}
 
 	public byte[] Read(string file, string[] directories = null)
@@ -72,22 +68,41 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 			if (assembly.Location != string.Empty)
 			{
 				raw = File.ReadAllBytes(assembly.Location);
-				if (raw != null) return raw;
+
+				if (raw != null)
+				{
+					return raw;
+				}
 			}
 		}
 
 		foreach(var extension in Extensions.Loaded.Values)
 		{
-			if (Path.GetFileName(extension.Key) != file) continue;
+			if (Path.GetFileName(extension.Key) != file)
+			{
+				continue;
+			}
+
 			raw = Extensions.Read(file);
-			if (raw != null) return raw;
+			if (raw != null)
+			{
+				return raw;
+			}
 		}
 
 		foreach (string expr in _blacklistLibs)
 		{
-			if (Regex.IsMatch(file, expr)) break;
+			if (Regex.IsMatch(file, expr))
+			{
+				break;
+			}
+
 			IAssemblyCache result = _library.ResolveAssembly(file, $"{this}", directories);
-			if (result.Raw != null) return result.Raw;
+
+			if (result.Raw != null)
+			{
+				return result.Raw;
+			}
 		}
 
 
@@ -99,8 +114,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 	{
 		try
 		{
-			Type @base = typeof(T) ?? throw new Exception();
-			output = assembly.GetTypes().Where(type => @base.IsAssignableFrom(type));
+			output = assembly.GetTypes().Where(type => typeof(T).IsAssignableFrom(type));
 			return output.Count() > 0;
 		}
 		catch
@@ -111,7 +125,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 #else
 		{
 #endif
-			output = new List<Type>();
+			output = default;
 			return false;
 		}
 	}
