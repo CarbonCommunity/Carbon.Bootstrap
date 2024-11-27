@@ -8,6 +8,7 @@ using Carbon;
 using Carbon.Components;
 using Carbon.Extensions;
 using Carbon.Profiler;
+using UnityEngine.Experimental.AI;
 using Utility;
 using Logger = Utility.Logger;
 
@@ -97,7 +98,6 @@ internal sealed class AssemblyLoader : IDisposable
 				break;
 
 			case IExtensionManager.ExtensionTypes.HarmonyMod:
-			case IExtensionManager.ExtensionTypes.HarmonyModHotload:
 				converted = Community.Runtime.Compat.ConvertHarmonyMod(ref raw);
 
 				if (raw == null)
@@ -133,7 +133,6 @@ internal sealed class AssemblyLoader : IDisposable
 		switch (extensionType)
 		{
 			case IExtensionManager.ExtensionTypes.HarmonyMod:
-			case IExtensionManager.ExtensionTypes.HarmonyModHotload:
 			{
 				var fileName = Path.GetFileNameWithoutExtension(file);
 				var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, result, Path.GetFileNameWithoutExtension(file), true);
@@ -141,19 +140,19 @@ internal sealed class AssemblyLoader : IDisposable
 
 				if (!converted)
 				{
-					var hooks = new List<object>();
+					var hooks = new List<IHarmonyModHooks>();
 					var patchCount = Harmony.PatchAll(result, fileName);
 
 					foreach (var type in result.GetTypes())
 					{
-						if (type.GetInterfaces().All(x => x.Name != "IHarmonyModHooks"))
+						if (!typeof(IHarmonyModHooks).IsAssignableFrom(type))
 						{
 							continue;
 						}
 
 						try
 						{
-							var mod = Activator.CreateInstance(type);
+							var mod = Activator.CreateInstance(type) as IHarmonyModHooks;
 
 							if (mod == null)
 							{
@@ -163,18 +162,18 @@ internal sealed class AssemblyLoader : IDisposable
 							{
 								hooks.Add(mod);
 							}
+						}
+						catch (Exception ex)
+						{
+							Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
+						}
+					}
 
-							if (extensionType == IExtensionManager.ExtensionTypes.HarmonyModHotload)
-							{
-								try
-								{
-									type.GetMethod("OnLoaded").Invoke(mod, new object[1]);
-								}
-								catch (Exception ex)
-								{
-									Logger.Error($"Failed to create hook instance ({path} -> {requester})", ex);
-								}
-							}
+					foreach(var hook in hooks)
+					{
+						try
+						{
+							hook.OnLoaded(new OnHarmonyModLoadedArgs());
 						}
 						catch (Exception ex)
 						{

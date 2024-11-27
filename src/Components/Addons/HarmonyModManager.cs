@@ -24,37 +24,20 @@ namespace Components;
 
 #pragma warning disable IDE0051
 
-internal sealed class ExtensionManager : AddonManager, IExtensionManager
+internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 {
-	/*
-	 * CARBON EXTENSIONS
-	 * API.Contracts.ICarbonExtension
-	 *
-	 * An assembly to be considered as a Carbon Extension must:
-	 *   1. Implement the ICarbonExtension interface
-	 *   2. Must not change directly the world
-	 *   3. Provide additional functionality such as new features or services
-	 *
-	 * Carbon extensions are different from Oxide extensions, in Carbon extensions
-	 * are "libraries" and cannot access features such as hooks or change the
-	 * world, either directly or using reflection.
-	 *
-	 */
-
 	private readonly string[] _directories =
 	{
-		Context.CarbonExtensions,
+		Context.CarbonHarmonyMods
 	};
 	private static readonly string[] _references =
 	{
-		Context.CarbonExtensions,
 		Context.CarbonHarmonyMods,
 		Context.CarbonManaged,
 		Context.CarbonLib,
 		Context.GameManaged
 	};
 
-	public static Dictionary<string, Assembly> ExtensionAssemblyCache = new();
 	public static Resolver ResolverInstance;
 	public static ReaderParameters ReadingParameters = new() { AssemblyResolver = ResolverInstance = new Resolver()};
 
@@ -112,34 +95,34 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 		{
 			Extension = "*.dll",
 			IncludeSubFolders = false,
-			Directory = Context.CarbonExtensions,
+			Directory = Context.CarbonHarmonyMods,
 
 			OnFileCreated = (_, file) =>
 			{
-				if (!Watcher.InitialEvent && !Community.Runtime.Config.Watchers.ExtensionWatchers)
+				if (!Watcher.InitialEvent && !Community.Runtime.Config.Watchers.HarmonyWatchers)
 				{
 					return;
 				}
 
-				Load(file, "ExtensionManager.Created");
+				Load(file, "HarmonyModManager.Created");
 			},
 			OnFileChanged = (sender, file) =>
 			{
-				if (!Community.Runtime.Config.Watchers.ExtensionWatchers)
+				if (!Community.Runtime.Config.Watchers.HarmonyWatchers)
 				{
 					return;
 				}
 
-				Load(file, "ExtensionManager.Changed");
+				Load(file, "HarmonyModManager.Changed");
 			},
 			OnFileDeleted = (sender, file) =>
 			{
-				if (!Community.Runtime.Config.Watchers.ExtensionWatchers)
+				if (!Community.Runtime.Config.Watchers.HarmonyWatchers)
 				{
 					return;
 				}
 
-				Load(file, "ExtensionManager.Deleted");
+				Load(file, "HarmonyModManager.Deleted");
 			}
 		});
 
@@ -157,37 +140,8 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 
 		var item = _loaded.FirstOrDefault(x => x.File == file);
 
-		if (item != null)
-		{
-			if (item.CanHotload)
-			{
-				var arg2 = Pool.Get<CarbonEventArgs>();
-				arg2.Init(item.File);
-			
-				try
-				{
-					item.Addon.OnUnloaded(arg2);
-
-					Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloaded, arg2);
-				}
-				catch (Exception ex)
-				{
-					Logger.Error($"Couldn't unload extension '{item.File}'", ex);
-
-					Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloadFailed, arg2);
-				}
-
-				Pool.Free(ref arg2);
-			}
-			else
-			{
-				return null;
-			}
-		}
-
 		var definition = (AssemblyDefinition)null;
 		var stream = (MemoryStream)null;
-		var extension = (ICarbonExtension)null;
 		var assemblyName = string.Empty;
 		var result = (Assembly)null;
 
@@ -230,79 +184,11 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 		definition.Dispose();
 
 		var bytes = memoryStream.ToArray();
-		result = _loader.Load(file, requester, _directories, AssemblyManager.RefBlacklist, null, IExtensionManager.ExtensionTypes.Extension)?.Assembly;
+		result = _loader.Load(file, requester, _directories, AssemblyManager.RefBlacklist, null, IExtensionManager.ExtensionTypes.HarmonyMod)?.Assembly;
 
-		ExtensionAssemblyCache[result.FullName] = result;
 
 		var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
 		Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), result, file, isProfiled);
-
-		if (AssemblyManager.IsType<ICarbonExtension>(result, out var types))
-		{
-			var moduleFile = Path.Combine(Context.CarbonModules, $"{assemblyName}.dll");
-
-			if (item == null)
-			{
-				_loaded.Add(item = new() { File = moduleFile });
-			}
-
-			item.PostProcessedRaw = bytes;
-			item.Shared = result.GetTypes();
-
-			var moduleTypes = new List<Type>();
-
-			if (types != null)
-			{
-				foreach (var type in types)
-				{
-					if (!type.GetInterfaces().Contains(typeof(ICarbonExtension)))
-					{
-						continue;
-					}
-
-					extension = Activator.CreateInstance(type) as ICarbonExtension;
-
-					Hydrate(result, extension);
-
-					moduleTypes.Add(type);
-					item.Addon = extension;
-
-					Logger.Debug($"A new instance of '{type}' created");
-				}
-			}
-
-			item.Types = moduleTypes;
-		}
-
-		if (extension == null)
-		{
-			Logger.Error($"Failed loading extension '{file}'");
-
-			Dispose();
-			return null;
-		}
-
-		var arg = Pool.Get<CarbonEventArgs>();
-		arg.Init(file);
-
-		try
-		{
-			item.CanHotload = item.Addon.GetType().HasAttribute(typeof(HotloadableAttribute));
-
-			extension.Awake(arg);
-			extension.OnLoaded(arg);
-
-			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionLoaded, arg);
-
-		}
-		catch (Exception e)
-		{
-			Logger.Error($"Failed to instantiate module from type '{assemblyName}' [{file}]", e);
-
-			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionLoadFailed, arg);
-		}
-
-		Pool.Free(ref arg);
 
 		void Dispose()
 		{
@@ -315,30 +201,33 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public override void Unload(string file, string requester)
 	{
-		var item = _loaded.FirstOrDefault(x => x.File == file);
-		var arg = Pool.Get<CarbonEventArgs>();
-		arg.Init(file);
+		var item = Loaded.FirstOrDefault(x => x.Value.Key == file);
 
-		try
+		if (item.Key == null) return;
+
+		if (!Harmony.ModHooks.TryGetValue(item.Key.Assembly, out var mods))
 		{
-			if (!item.CanHotload)
+			return;
+		}
+
+		foreach (var mod in mods)
+		{
+			try
 			{
-				return;
+				mod.OnUnloaded(new OnHarmonyModUnloadedArgs());
 			}
-
-			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloaded, arg);
-
-			item.Addon.OnUnloaded(EventArgs.Empty);
-		}
-		catch (Exception ex)
-		{
-			Logger.Error($"Failed unloading extension '{file}' (requested by {requester})", ex);
-
-			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloadFailed, arg);
+			catch (Exception ex)
+			{
+				Logger.Error($"Failed unloading HarmonyMod '{item.Value.Key}'", ex);
+			}
 		}
 
-		Pool.Free(ref arg);
+		var unpatchCount = Harmony.UnpatchAll(item.Key.Assembly.GetName().Name);
+		Harmony.ModHooks.Remove(item.Key.Assembly);
+		Logger.Log($"Unloaded '{Path.GetFileNameWithoutExtension(item.Value.Key)}' HarmonyMod with {unpatchCount:n0} {unpatchCount.Plural("patch", "patches")}");
 
-		_loaded.Remove(item);
+		mods.Clear();
+
+		_loaded.RemoveAll(x => x.File == item.Value.Key);
 	}
 }
