@@ -91,6 +91,10 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 		}
 	}
 
+	internal List<string> _created = [];
+	internal List<string> _changed = [];
+	internal List<string> _deleted = [];
+
 	internal void Awake()
 	{
 		Carbon.Bootstrap.Watcher.Watch(Watcher = new WatchFolder
@@ -106,7 +110,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 					return;
 				}
 
-				Load(file, "ExtensionManager.Created");
+				_created.Add(file);
 			},
 			OnFileChanged = (sender, file) =>
 			{
@@ -115,7 +119,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 					return;
 				}
 
-				Load(file, "ExtensionManager.Changed");
+				_changed.Add(file);
 			},
 			OnFileDeleted = (sender, file) =>
 			{
@@ -124,13 +128,34 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 					return;
 				}
 
-				Load(file, "ExtensionManager.Deleted");
+				_deleted.Add(file);
 			}
 		});
 
 		Watcher.Handler.EnableRaisingEvents = false;
 	}
 
+	internal void Update()
+	{
+		foreach (var file in _created)
+		{
+			Load(file, "ExtensionManager.Created");
+		}
+
+		foreach (var file in _changed)
+		{
+			Load(file, "ExtensionManager.Changed");
+		}
+
+		foreach (var file in _deleted)
+		{
+			Unload(file, "ExtensionManager.Deleted");
+		}
+
+		_created.Clear();
+		_changed.Clear();
+		_deleted.Clear();
+	}
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public override Assembly Load(string file, string requester = null)
 	{
