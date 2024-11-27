@@ -236,7 +236,6 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 
 		if (item == null)
 		{
-			UnityEngine.Debug.LogWarning($"item null");
 			return;
 		}
 
@@ -244,7 +243,7 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 
 		if (!Harmony.ModHooks.TryGetValue(assembly, out var mods))
 		{
-			UnityEngine.Debug.LogWarning($"no bueno");
+			_loaded.RemoveAll(x => x.File == file);
 			return;
 		}
 
