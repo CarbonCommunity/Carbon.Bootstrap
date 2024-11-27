@@ -166,8 +166,6 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 			requester = $"{caller.DeclaringType}.{caller.Name}";
 		}
 
-		var item = _loaded.FirstOrDefault(x => x.File == file);
-
 		var definition = (AssemblyDefinition)null;
 		var stream = (MemoryStream)null;
 		var assemblyName = string.Empty;
@@ -217,6 +215,12 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 		var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
 		Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), result, file, isProfiled);
 
+		_loaded.Add(new Item
+		{
+			File = file,
+			Types = [result.GetTypes()[0]]
+		});
+
 		void Dispose()
 		{
 			stream?.Dispose();
@@ -228,12 +232,19 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public override void Unload(string file, string requester)
 	{
-		var item = Loaded.FirstOrDefault(x => x.Value.Key == file);
+		var item = _loaded.FirstOrDefault(x => x.File == file);
 
-		if (item.Key == null) return;
-
-		if (!Harmony.ModHooks.TryGetValue(item.Key.Assembly, out var mods))
+		if (item == null)
 		{
+			UnityEngine.Debug.LogWarning($"item null");
+			return;
+		}
+
+		var assembly = item.Types[0].Assembly;
+
+		if (!Harmony.ModHooks.TryGetValue(assembly, out var mods))
+		{
+			UnityEngine.Debug.LogWarning($"no bueno");
 			return;
 		}
 
@@ -245,16 +256,16 @@ internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 			}
 			catch (Exception ex)
 			{
-				Logger.Error($"Failed unloading HarmonyMod '{item.Value.Key}'", ex);
+				Logger.Error($"Failed unloading HarmonyMod '{item.File}'", ex);
 			}
 		}
 
-		var unpatchCount = Harmony.UnpatchAll(item.Key.Assembly.GetName().Name);
-		Harmony.ModHooks.Remove(item.Key.Assembly);
-		Logger.Log($"Unloaded '{Path.GetFileNameWithoutExtension(item.Value.Key)}' HarmonyMod with {unpatchCount:n0} {unpatchCount.Plural("patch", "patches")}");
+		var unpatchCount = Harmony.UnpatchAll(assembly.GetName().Name);
+		Harmony.ModHooks.Remove(assembly);
+		Logger.Log($"Unloaded '{Path.GetFileNameWithoutExtension(item.File)}' HarmonyMod with {unpatchCount:n0} {unpatchCount.Plural("patch", "patches")}");
 
 		mods.Clear();
 
-		_loaded.RemoveAll(x => x.File == item.Value.Key);
+		_loaded.RemoveAll(x => x.File == file);
 	}
 }
