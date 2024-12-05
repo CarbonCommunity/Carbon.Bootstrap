@@ -77,11 +77,11 @@ public sealed class Bootstrap
 
 		// standard priority
 		Analytics = _gameObject.AddComponent<AnalyticsManager>();
-		AssemblyEx = _gameObject.AddComponent<AssemblyManager>();
 		Downloader = _gameObject.AddComponent<DownloadManager>();
 
 		Events.Subscribe(CarbonEvent.StartupShared, x =>
 		{
+			AssemblyEx = _gameObject.AddComponent<AssemblyManager>();
 			AssemblyEx.Components.Load("Carbon.dll", "CarbonEvent.StartupShared");
 		});
 

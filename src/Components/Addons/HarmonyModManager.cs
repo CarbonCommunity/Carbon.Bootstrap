@@ -6,17 +6,11 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using API.Assembly;
-using API.Events;
 using Carbon;
 using Carbon.Components;
 using Carbon.Extensions;
 using Carbon.Profiler;
-using Facepunch;
-using Facepunch.Extend;
-using Loaders;
 using Mono.Cecil;
-using Steamworks.Data;
-using UnityEngine;
 using Utility;
 using Logger = Utility.Logger;
 
@@ -24,24 +18,26 @@ namespace Components;
 
 #pragma warning disable IDE0051
 
-internal sealed class ExtensionManager : AddonManager, IExtensionManager
+internal sealed class HarmonyModManager : AddonManager, IHarmonyModManager
 {
 	private readonly string[] _directories =
 	{
-		Context.CarbonExtensions,
+		Context.CarbonHarmonyMods
 	};
 	private static readonly string[] _references =
 	{
-		Context.CarbonExtensions,
 		Context.CarbonHarmonyMods,
 		Context.CarbonManaged,
 		Context.CarbonLib,
 		Context.GameManaged
 	};
 
-	public static Dictionary<string, Assembly> ExtensionAssemblyCache = new();
 	public static Resolver ResolverInstance;
 	public static ReaderParameters ReadingParameters = new() { AssemblyResolver = ResolverInstance = new Resolver()};
+
+	internal List<string> _created = [];
+	internal List<string> _changed = [];
+	internal List<string> _deleted = [];
 
 	public class Resolver : IAssemblyResolver
 	{
@@ -91,21 +87,17 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 		}
 	}
 
-	internal List<string> _created = [];
-	internal List<string> _changed = [];
-	internal List<string> _deleted = [];
-
 	internal void Awake()
 	{
 		Carbon.Bootstrap.Watcher.Watch(Watcher = new WatchFolder
 		{
 			Extension = "*.dll",
 			IncludeSubFolders = false,
-			Directory = Context.CarbonExtensions,
+			Directory = Context.CarbonHarmonyMods,
 
 			OnFileCreated = (_, file) =>
 			{
-				if (!Watcher.InitialEvent && !Community.Runtime.Config.Watchers.ExtensionWatchers)
+				if (!Watcher.InitialEvent && !Community.Runtime.Config.Watchers.HarmonyWatchers)
 				{
 					return;
 				}
@@ -117,7 +109,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 			},
 			OnFileChanged = (sender, file) =>
 			{
-				if (!Community.Runtime.Config.Watchers.ExtensionWatchers)
+				if (!Community.Runtime.Config.Watchers.HarmonyWatchers)
 				{
 					return;
 				}
@@ -129,7 +121,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 			},
 			OnFileDeleted = (sender, file) =>
 			{
-				if (!Community.Runtime.Config.Watchers.ExtensionWatchers)
+				if (!Community.Runtime.Config.Watchers.HarmonyWatchers)
 				{
 					return;
 				}
@@ -142,6 +134,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 		});
 
 		Watcher.Handler.EnableRaisingEvents = false;
+		Watcher.TriggerAll(WatcherChangeTypes.Created);
 	}
 
 	internal void FixedUpdate()
@@ -150,7 +143,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 		{
 			try
 			{
-				Load(file, "ExtensionManager.Created");
+				Load(file, "HarmonyModManager.Created");
 			}
 			catch (Exception ex)
 			{
@@ -162,8 +155,8 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 		{
 			try
 			{
-				Unload(file, "ExtensionManager.Changed");
-				Load(file, "ExtensionManager.Changed");
+				Unload(file, "HarmonyModManager.Changed");
+				Load(file, "HarmonyModManager.Changed");
 			}
 			catch (Exception ex)
 			{
@@ -175,7 +168,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 		{
 			try
 			{
-				Unload(file, "ExtensionManager.Deleted");
+				Unload(file, "HarmonyModManager.Deleted");
 			}
 			catch (Exception ex)
 			{
@@ -197,49 +190,16 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 			requester = $"{caller.DeclaringType}.{caller.Name}";
 		}
 
-		var item = _loaded.FirstOrDefault(x => x.File == file);
-
-		if (item != null)
-		{
-			if (item.CanHotload)
-			{
-				var arg2 = Pool.Get<CarbonEventArgs>();
-				arg2.Init(item.File);
-			
-				try
-				{
-					item.Addon.OnUnloaded(arg2);
-
-					Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloaded, arg2);
-				}
-				catch (Exception ex)
-				{
-					Logger.Error($"Couldn't unload extension '{item.File}'", ex);
-
-					Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloadFailed, arg2);
-				}
-
-				Pool.Free(ref arg2);
-			}
-			else
-			{
-				return null;
-			}
-		}
-
 		var definition = (AssemblyDefinition)null;
-		var stream = (MemoryStream)null;
-		var extension = (ICarbonExtension)null;
 		var assemblyName = string.Empty;
-		var result = (Assembly)null;
 
 		if (File.Exists(file))
 		{
 			switch (Path.GetExtension(file))
 			{
 				case ".dll":
-					stream = new MemoryStream(File.ReadAllBytes(file));
-
+				{
+					var stream = new MemoryStream(File.ReadAllBytes(file));
 					var assembly = AssemblyDefinition.ReadAssembly(stream, ReadingParameters);
 					assemblyName = assembly.Name.Name;
 
@@ -257,97 +217,68 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 
 					definition = assembly;
 					break;
+				}
 			}
 		}
 
 		if (definition == null || string.IsNullOrEmpty(assemblyName))
 		{
-			Dispose();
 			return null;
 		}
 
-		using MemoryStream memoryStream = new MemoryStream();
-		definition.Write(memoryStream);
-		memoryStream.Position = 0;
-		definition.Dispose();
+		var result = _loader.Load(file, requester, _directories, AssemblyManager.RefBlacklist, null, IExtensionManager.ExtensionTypes.HarmonyMod)?.Assembly;
 
-		var bytes = memoryStream.ToArray();
-		result = _loader.Load(file, requester, _directories, AssemblyManager.RefBlacklist, null, IExtensionManager.ExtensionTypes.Extension)?.Assembly;
+		var fileName = Path.GetFileNameWithoutExtension(file);
+		var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Harmony, result, Path.GetFileNameWithoutExtension(file), true);
+		Assemblies.Harmony.Update(fileName, result, file, isProfiled);
 
-		ExtensionAssemblyCache[result.FullName] = result;
+		var hooks = new List<IHarmonyModHooks>();
+		var patchCount = Harmony.PatchAll(result, fileName);
 
-		var isProfiled = MonoProfiler.TryStartProfileFor(MonoProfilerConfig.ProfileTypes.Extension, result, Path.GetFileNameWithoutExtension(file));
-		Assemblies.Extensions.Update(Path.GetFileNameWithoutExtension(file), result, file, isProfiled);
-
-		if (AssemblyManager.IsType<ICarbonExtension>(result, out var types))
+		foreach (var type in result.GetTypes())
 		{
-			var moduleFile = Path.Combine(Context.CarbonModules, $"{assemblyName}.dll");
-
-			if (item == null)
+			if (!typeof(IHarmonyModHooks).IsAssignableFrom(type))
 			{
-				_loaded.Add(item = new() { File = moduleFile });
+				continue;
 			}
 
-			item.PostProcessedRaw = bytes;
-			item.Shared = result.GetTypes();
-
-			var moduleTypes = new List<Type>();
-
-			if (types != null)
+			try
 			{
-				foreach (var type in types)
+				if (Activator.CreateInstance(type) is not IHarmonyModHooks mod)
 				{
-					if (!type.GetInterfaces().Contains(typeof(ICarbonExtension)))
-					{
-						continue;
-					}
-
-					extension = Activator.CreateInstance(type) as ICarbonExtension;
-
-					Hydrate(result, extension);
-
-					moduleTypes.Add(type);
-					item.Addon = extension;
+					Logger.Error($"Failed to create hook instance: Is null ({file} -> {requester})");
+				}
+				else
+				{
+					hooks.Add(mod);
 				}
 			}
-
-			item.Types = moduleTypes;
+			catch (Exception ex)
+			{
+				Logger.Error($"Failed to create hook instance ({file} -> {requester})", ex);
+			}
 		}
 
-		if (extension == null)
+		foreach (var hook in hooks)
 		{
-			Logger.Error($"Failed loading extension '{file}'");
-
-			Dispose();
-			return null;
+			try
+			{
+				hook.OnLoaded(new OnHarmonyModLoadedArgs());
+			}
+			catch (Exception ex)
+			{
+				Logger.Error($"Failed run OnLoaded ({file} -> {requester})", ex);
+			}
 		}
 
-		var arg = Pool.Get<CarbonEventArgs>();
-		arg.Init(file);
+		Logger.Log($"Loaded '{Path.GetFileNameWithoutExtension(file)}' HarmonyMod with {patchCount:n0} {patchCount.Plural("patch", "patches")}");
+		Harmony.ModHooks.Add(result, hooks);
 
-		try
+		_loaded.Add(new Item
 		{
-			item.CanHotload = item.Addon.GetType().HasAttribute(typeof(HotloadableAttribute));
-
-			extension.Awake(arg);
-			extension.OnLoaded(arg);
-
-			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionLoaded, arg);
-
-		}
-		catch (Exception e)
-		{
-			Logger.Error($"Failed to instantiate module from type '{assemblyName}' [{file}]", e);
-
-			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionLoadFailed, arg);
-		}
-
-		Pool.Free(ref arg);
-
-		void Dispose()
-		{
-			stream?.Dispose();
-		}
+			File = file,
+			Types = [result.GetTypes()[0]]
+		});
 
 		return result;
 	}
@@ -356,29 +287,38 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 	public override void Unload(string file, string requester)
 	{
 		var item = _loaded.FirstOrDefault(x => x.File == file);
-		var arg = Pool.Get<CarbonEventArgs>();
-		arg.Init(file);
 
-		try
+		if (item == null)
 		{
-			if (!item.CanHotload)
+			return;
+		}
+
+		var assembly = item.Types[0].Assembly;
+
+		if (!Harmony.ModHooks.TryGetValue(assembly, out var mods))
+		{
+			_loaded.RemoveAll(x => x.File == file);
+			return;
+		}
+
+		foreach (var mod in mods)
+		{
+			try
 			{
-				return;
+				mod.OnUnloaded(new OnHarmonyModUnloadedArgs());
 			}
-
-			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloaded, arg);
-
-			item.Addon.OnUnloaded(EventArgs.Empty);
-		}
-		catch (Exception ex)
-		{
-			Logger.Error($"Failed unloading extension '{file}' (requested by {requester})", ex);
-
-			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloadFailed, arg);
+			catch (Exception ex)
+			{
+				Logger.Error($"Failed unloading HarmonyMod '{item.File}'", ex);
+			}
 		}
 
-		Pool.Free(ref arg);
+		var unpatchCount = Harmony.UnpatchAll(assembly.GetName().Name);
+		Harmony.ModHooks.Remove(assembly);
+		Logger.Log($"Unloaded '{Path.GetFileNameWithoutExtension(item.File)}' HarmonyMod with {unpatchCount:n0} {unpatchCount.Plural("patch", "patches")}");
 
-		_loaded.Remove(item);
+		mods.Clear();
+
+		_loaded.RemoveAll(x => x.File == file);
 	}
 }

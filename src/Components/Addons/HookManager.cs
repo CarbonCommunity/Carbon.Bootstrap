@@ -37,13 +37,12 @@ internal sealed class HookManager : AddonManager
 			switch (Path.GetExtension(file))
 			{
 				case ".dll":
-					IEnumerable<Type> types;
 					// before changing this line, look at the warning above..
 					Assembly asm = _loader.Load(file, requester, _directories, blacklist, whitelist)?.Assembly
 						?? throw new ReflectionTypeLoadException(null, null, null);
 					// -----------------------------------------------------------------------------
 
-					if (AssemblyManager.IsType<Patch>(asm, out types))
+					if (AssemblyManager.IsType<Patch>(asm, out _))
 					{
 						Logger.Debug($"Loading hooks file '{file}'");
 						// TODO: Integrate part of HookManager here

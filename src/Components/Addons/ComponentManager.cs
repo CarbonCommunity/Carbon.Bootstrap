@@ -53,29 +53,30 @@ internal sealed class ComponentManager : AddonManager
 					{
 						Logger.Debug($"Loading component from file '{file}'");
 
-						foreach (Type type in types)
+						if (types != null)
 						{
-							try
+							foreach (Type type in types)
 							{
-								if (Activator.CreateInstance(type) is not ICarbonComponent component)
-									throw new NullReferenceException();
+								try
+								{
+									if (Activator.CreateInstance(type) is not ICarbonComponent component)
+										throw new NullReferenceException();
 
-								Logger.Debug($"A new instance of '{component}' created");
+									component.Awake(EventArgs.Empty);
+									component.OnLoaded(EventArgs.Empty);
 
-								component.Awake(EventArgs.Empty);
-								component.OnLoaded(EventArgs.Empty);
+									var arg = Pool.Get<CarbonEventArgs>();
+									arg.Init(file);
+									Carbon.Bootstrap.Events.Trigger(CarbonEvent.ComponentLoaded, arg);
+									Pool.Free(ref arg);
 
-								var arg = Pool.Get<CarbonEventArgs>();
-								arg.Init(file);
-								Carbon.Bootstrap.Events.Trigger(CarbonEvent.ComponentLoaded, arg);
-								Pool.Free(ref arg);
-
-								_loaded.Add(new() { Addon = component, File = file });
-							}
-							catch (Exception e)
-							{
-								Logger.Error($"Failed to instantiate component from type '{type}'", e);
-								continue;
+									_loaded.Add(new() { Addon = component, File = file });
+								}
+								catch (Exception e)
+								{
+									Logger.Error($"Failed to instantiate component from type '{type}'", e);
+									continue;
+								}
 							}
 						}
 					}
@@ -84,10 +85,6 @@ internal sealed class ComponentManager : AddonManager
 						throw new Exception("Unsupported assembly type");
 					}
 					return asm;
-
-				// case ".drm"
-				// 	LoadFromDRM();
-				// 	break;
 
 				default:
 					throw new Exception("File extension not supported");
