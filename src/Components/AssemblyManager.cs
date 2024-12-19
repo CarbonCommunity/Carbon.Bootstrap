@@ -201,6 +201,11 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"Facepunch.Raknet",
 		"Facepunch.Sqlite",
 		"Facepunch.System",
+#if UNIX
+		"Facepunch.Steamworks.Posix",
+#else
+		"Facepunch.Steamworks.Win64",
+#endif
 		"Facepunch.Unity",
 		"Facepunch.UnityEngine",
 		"Facepunch.Nexus",
