@@ -33,7 +33,6 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 	private static readonly string[] _references =
 	{
 		Context.CarbonExtensions,
-		Context.CarbonHarmonyMods,
 		Context.CarbonManaged,
 		Context.CarbonLib,
 		Context.GameManaged
@@ -205,7 +204,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 			{
 				var arg2 = Pool.Get<CarbonEventArgs>();
 				arg2.Init(item.File);
-			
+
 				try
 				{
 					item.Addon.OnUnloaded(arg2);

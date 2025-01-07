@@ -23,7 +23,6 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 
 	public IAddonManager Components { get; private set; }
 	public IExtensionManager Extensions { get; private set; }
-	public IHarmonyModManager HarmonyMods { get; private set; }
 	public IAddonManager Hooks { get; private set; }
 	public IAddonManager Modules { get; private set; }
 
@@ -47,14 +46,9 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		Carbon.Bootstrap.Commands.RegisterCommand(new Command.RCon
 		{
 			Name = "c.assembly",
-			Callback = (arg) => CMDAssemblyInfo(arg)
-		}, out string reason);
+			Callback = arg => CMDAssemblyInfo(arg)
+		}, out _);
 #endif
-	}
-
-	public void InstallHarmonyMods()
-	{
-		HarmonyMods = gameObject.AddComponent<HarmonyModManager>();
 	}
 
 	public byte[] Read(string file, string[] directories = null)

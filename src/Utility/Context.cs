@@ -11,7 +11,7 @@ internal sealed class Context
 
 	internal static readonly string
 		Game, GameManaged,
-		Carbon, CarbonData, CarbonExtensions, CarbonHarmonyMods, CarbonHooks,
+		Carbon, CarbonData, CarbonExtensions, CarbonHooks,
 		CarbonLib, CarbonLogs, CarbonManaged, CarbonModules, CarbonPlugins, CarbonConfig;
 
 	static Context()
@@ -40,9 +40,6 @@ internal sealed class Context
 
 			CarbonExtensions = CommandLineEx.GetArgumentResult("-carbon.extdir", Path.Combine(Carbon, "extensions"));
 			if (!Directory.Exists(CarbonExtensions)) Directory.CreateDirectory(CarbonExtensions);
-
-			CarbonHarmonyMods = CommandLineEx.GetArgumentResult("-carbon.harmonydir", Path.Combine(Carbon, "harmony"));
-			if (!Directory.Exists(CarbonHarmonyMods)) Directory.CreateDirectory(CarbonHarmonyMods);
 
 			CarbonHooks = Path.Combine(Carbon, "managed", "hooks");
 			if (!Directory.Exists(CarbonHooks)) Directory.CreateDirectory(CarbonHooks);
