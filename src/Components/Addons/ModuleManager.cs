@@ -27,7 +27,6 @@ internal sealed class ModuleManager : AddonManager
 	{
 		Context.CarbonModules,
 		Context.CarbonExtensions,
-		Context.CarbonHarmonyMods,
 		Context.CarbonManaged,
 		Context.CarbonLib,
 		Context.GameManaged
