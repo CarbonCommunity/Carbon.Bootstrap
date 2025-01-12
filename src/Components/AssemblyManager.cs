@@ -188,6 +188,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 
 		"Ionic.Zip.Reduced",
 
+		"Cronos",
 		"Facepunch.BurstCloth",
 		"Facepunch.Console",
 		"Facepunch.Network",
