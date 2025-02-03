@@ -280,7 +280,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 
 		if (AssemblyManager.IsType<ICarbonExtension>(result, out var types))
 		{
-			var moduleFile = Path.Combine(Context.CarbonModules, $"{assemblyName}.dll");
+			var moduleFile = Path.Combine(Context.CarbonExtensions, $"{assemblyName}.dll");
 
 			if (item == null)
 			{
