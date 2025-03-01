@@ -174,6 +174,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"Carbon.Common.Client.V2",
 		"Carbon.SDK",
 		"Carbon.Test",
+		"Carbon.Profiler",
 
 		"MySql.Data",
 		"protobuf-net.Core",
