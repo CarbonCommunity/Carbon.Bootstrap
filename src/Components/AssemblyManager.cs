@@ -223,6 +223,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"Unity.Mathematics",
 		"Unity.Timeline",
 		"UnityEngine.AIModule",
+		"UnityEngine.AssetBundleModule",
 		"UnityEngine.AnimationModule",
 		"UnityEngine.CoreModule",
 		"UnityEngine.ImageConversionModule",
