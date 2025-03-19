@@ -63,7 +63,7 @@ internal sealed class LibraryLoader : Singleton<LibraryLoader>, IDisposable
 	{
 		AssemblyName assemblyName = new AssemblyName(args.Name);
 		string requester = args.RequestingAssembly?.GetName().Name ?? "unknown";
-		return ResolveAssembly(assemblyName.Name, requester).Assembly;
+		return ResolveAssembly(assemblyName.Name, requester)?.Assembly;
 	}
 
 	internal IAssemblyCache ResolveAssembly(string name, string requester, string[] customDirectories = null)
