@@ -93,15 +93,13 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 
 			IAssemblyCache result = _library.ResolveAssembly(file, $"{this}", directories);
 
-			if (result.Raw != null)
+			if (result != null && result.Raw != null)
 			{
 				return result.Raw;
 			}
 		}
 
-
-		Logger.Warn($"Unable to get byte[] for '{file}'");
-		return default;
+		return null;
 	}
 
 	public bool IsType<T>(Assembly assembly, out IEnumerable<Type> output)
