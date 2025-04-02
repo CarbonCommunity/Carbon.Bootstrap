@@ -66,11 +66,11 @@ internal sealed class AssemblyLoader : IDisposable
 
 		if (blackList is not null || whiteList is not null)
 		{
-			using Sandbox<AssemblyValidator> sandbox = new Sandbox<AssemblyValidator>();
-			sandbox.Proxy.Blacklist = blackList;
-			sandbox.Proxy.Whitelist = whiteList;
+			AssemblyValidator sandbox = new AssemblyValidator();
+			sandbox.Blacklist = blackList;
+			sandbox.Whitelist = whiteList;
 
-			if (!sandbox.Proxy.Validate(path))
+			if (!sandbox.Validate(path))
 			{
 				Logger.Warn($" >> Validation failed for '{file}'");
 				return default;
