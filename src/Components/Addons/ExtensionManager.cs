@@ -271,7 +271,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 		definition.Dispose();
 
 		var bytes = memoryStream.ToArray();
-		result = _loader.Load(file, requester, _directories, AssemblyManager.RefBlacklist, null, IExtensionManager.ExtensionTypes.Extension)?.Assembly;
+		result = _loader.Load(file, requester, _directories, IExtensionManager.ExtensionTypes.Extension)?.Assembly;
 
 		ExtensionAssemblyCache[result.FullName] = result;
 

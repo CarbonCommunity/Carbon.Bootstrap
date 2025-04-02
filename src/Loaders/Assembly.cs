@@ -44,7 +44,7 @@ internal sealed class AssemblyLoader : IDisposable
 		}
 	}
 
-	internal IAssemblyCache Load(string file, string requester, string[] directories, IReadOnlyList<string> blackList, IReadOnlyList<string> whiteList, IExtensionManager.ExtensionTypes extensionType = IExtensionManager.ExtensionTypes.Default)
+	internal IAssemblyCache Load(string file, string requester, string[] directories, IExtensionManager.ExtensionTypes extensionType = IExtensionManager.ExtensionTypes.Default)
 	{
 		file = Path.GetFileName(file);
 
@@ -61,21 +61,6 @@ internal sealed class AssemblyLoader : IDisposable
 		{
 			Logger.Debug($"Unable to load assembly: '{file}'");
 			return default;
-		}
-
-		if (blackList is not null || whiteList is not null)
-		{
-			var validator = Pool.Get<AssemblyValidator>();
-			if (blackList != null) validator.blacklist.AddRange(blackList);
-			if (whiteList != null) validator.whitelist.AddRange(whiteList);
-
-			if (!validator.Validate(path))
-			{
-				Logger.Warn($" >> Validation failed for '{file}'");
-				Pool.Free(ref validator);
-				return default;
-			}
-			Pool.Free(ref validator);
 		}
 
 		byte[] raw = File.ReadAllBytes(path);
