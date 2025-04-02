@@ -143,15 +143,17 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		arg.ReplyWith(table.ToString());
 	}
 
-	private static readonly IReadOnlyList<string> _blacklistLibs = new List<string>() {
+	private static readonly IReadOnlyList<string> _blacklistLibs = [
 		@"^Carbon$",
 		@"^Carbon\.Bootstrap|Preloader$",
 		@"^Carbon\..+_\d{4}\.\d{2}\.\d{2}\.\d{4}$",
-	};
+	];
 
-	private static readonly IReadOnlyList<string> _whitelistLibs = new List<string>() {
+	private static readonly IReadOnlyList<string> _whitelistLibs = [
 		"mscorlib",
 		"netstandard",
+
+		"UniTask",
 
 		"System.Core",
 		"System.Data",
@@ -246,5 +248,5 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 #elif UNIX
 		"Facepunch.Steamworks.Posix",
 #endif
-	};
+	];
 }
