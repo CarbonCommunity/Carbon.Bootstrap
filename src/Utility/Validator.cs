@@ -3,20 +3,21 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Facepunch;
 using Facepunch.Extend;
 using Mono.Cecil;
 
 namespace Utility;
 
-public sealed class AssemblyValidator : MarshalByRefObject
+public sealed class AssemblyValidator : Pool.IPooled
 {
-	internal IReadOnlyList<string> Blacklist { get; set; }
-	internal IReadOnlyList<string> Whitelist { get; set; }
+	public List<string> blacklist;
+	public List<string> whitelist;
 
-	internal bool Validate(string file)
+	public bool Validate(string file)
 	{
 		// no blacklist, no whitelist, no validation
-		if (Blacklist == null && Whitelist == null) return true;
+		if (blacklist == null && whitelist == null) return true;
 
 		try
 		{
@@ -31,18 +32,18 @@ public sealed class AssemblyValidator : MarshalByRefObject
 			{
 				foreach (AssemblyNameReference reference in module.AssemblyReferences)
 				{
-					if (Blacklist is not null)
+					if (blacklist is not null)
 					{
-						foreach (string expr in Blacklist)
+						foreach (string expr in blacklist)
 						{
 							if (Regex.IsMatch(reference.Name, expr))
 								throw new Exception($" >> Reference '{reference.Name}' not allowed by blacklisting");
 						}
 					}
 
-					if (Whitelist is not null)
+					if (whitelist is not null)
 					{
-						if (!Whitelist.Contains(reference.Name))
+						if (!whitelist.Contains(reference.Name))
 							throw new Exception($" >> Reference '{reference.Name}' not allowed by whitelisting");
 					}
 				}
@@ -54,5 +55,23 @@ public sealed class AssemblyValidator : MarshalByRefObject
 			return false;
 		}
 		return true;
+	}
+
+	public void EnterPool()
+	{
+		if (blacklist != null)
+		{
+			Pool.FreeUnmanaged(ref blacklist);
+		}
+		if (whitelist != null)
+		{
+			Pool.FreeUnmanaged(ref whitelist);
+		}
+	}
+
+	public void LeavePool()
+	{
+		blacklist = Pool.Get<List<string>>();
+		whitelist = Pool.Get<List<string>>();
 	}
 }

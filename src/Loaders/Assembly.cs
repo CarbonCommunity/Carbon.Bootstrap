@@ -8,6 +8,7 @@ using Carbon;
 using Carbon.Components;
 using Carbon.Extensions;
 using Carbon.Profiler;
+using Facepunch;
 using UnityEngine.Experimental.AI;
 using Utility;
 using Logger = Utility.Logger;
@@ -43,10 +44,8 @@ internal sealed class AssemblyLoader : IDisposable
 		}
 	}
 
-	internal IAssemblyCache Load(string file, string requester,
-		string[] directories, IReadOnlyList<string> blackList, IReadOnlyList<string> whiteList, IExtensionManager.ExtensionTypes extensionType = IExtensionManager.ExtensionTypes.Default)
+	internal IAssemblyCache Load(string file, string requester, string[] directories, IReadOnlyList<string> blackList, IReadOnlyList<string> whiteList, IExtensionManager.ExtensionTypes extensionType = IExtensionManager.ExtensionTypes.Default)
 	{
-		// normalize filename
 		file = Path.GetFileName(file);
 
 		Logger.Debug($"Loading assembly '{file}' requested by '{requester}'");
@@ -66,15 +65,17 @@ internal sealed class AssemblyLoader : IDisposable
 
 		if (blackList is not null || whiteList is not null)
 		{
-			AssemblyValidator sandbox = new AssemblyValidator();
-			sandbox.Blacklist = blackList;
-			sandbox.Whitelist = whiteList;
+			var validator = Pool.Get<AssemblyValidator>();
+			if (blackList != null) validator.blacklist.AddRange(blackList);
+			if (whiteList != null) validator.whitelist.AddRange(whiteList);
 
-			if (!sandbox.Validate(path))
+			if (!validator.Validate(path))
 			{
 				Logger.Warn($" >> Validation failed for '{file}'");
+				Pool.Free(ref validator);
 				return default;
 			}
+			Pool.Free(ref validator);
 		}
 
 		byte[] raw = File.ReadAllBytes(path);
