@@ -153,7 +153,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"mscorlib",
 		"netstandard",
 
-		"UniTask",
+		"Carbon.UniTask",
 
 		"System.Core",
 		"System.Data",
