@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using Carbon;
 using Carbon.Extensions;
 
 namespace Utility;
@@ -32,13 +33,13 @@ internal sealed class Context
 			if (Game == null) throw new Exception("Unable to find root folder");
 			GameManaged = Path.GetFullPath(Path.Combine(Game, "RustDedicated_Data", "Managed"));
 
-			Carbon = Path.GetFullPath(CommandLineEx.GetArgumentResult("-carbon.rootdir", Path.Combine(Game, "carbon")));
+			Carbon = Path.GetFullPath(Switches.GetRootDir(Path.Combine(Game, "carbon")));
 			if (!Directory.Exists(Carbon)) throw new Exception("Carbon folder is missing");
 
-			CarbonData = CommandLineEx.GetArgumentResult("-carbon.datadir", Path.Combine(Carbon, "data"));
+			CarbonData = Switches.GetDataDir(Path.Combine(Carbon, "data"));
 			if (!Directory.Exists(CarbonData)) Directory.CreateDirectory(CarbonData);
 
-			CarbonExtensions = CommandLineEx.GetArgumentResult("-carbon.extdir", Path.Combine(Carbon, "extensions"));
+			CarbonExtensions = Switches.GetExtDir(Path.Combine(Carbon, "extensions"));
 			if (!Directory.Exists(CarbonExtensions)) Directory.CreateDirectory(CarbonExtensions);
 
 			CarbonHooks = Path.Combine(Carbon, "managed", "hooks");
@@ -56,7 +57,7 @@ internal sealed class Context
 			CarbonModules = Path.Combine(Carbon, "managed", "modules");
 			if (!Directory.Exists(CarbonModules)) Directory.CreateDirectory(CarbonModules);
 
-			CarbonPlugins = CommandLineEx.GetArgumentResult("-carbon.scriptdir", Path.Combine(Carbon, "plugins"));
+			CarbonPlugins = Switches.GetScriptDir(Path.Combine(Carbon, "plugins"));
 			if (!Directory.Exists(CarbonPlugins)) Directory.CreateDirectory(CarbonPlugins);
 
 			CarbonConfig = Path.Combine(Carbon, "config.json");
