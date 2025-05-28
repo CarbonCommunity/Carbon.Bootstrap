@@ -163,7 +163,7 @@ internal sealed class AnalyticsManager : CarbonBehaviour, IAnalyticsManager
 		{
 			Logger.Warn("We use Google Analytics to collect basic data about Carbon such as Carbon version, platform, branch and plug-in count.");
 			Logger.Warn("We have no access to any personal identifiable data such as steamids, server name, ip:port, title or description.");
-			Logger.Warn("If you'd like to opt-out, disable it in the 'carbon/config.json' file.");
+			Logger.Warn("If you'd like to opt-out, disable it in the '<settingdir>/config.json' file.");
 		}
 
 		Segments = new Dictionary<string, object> {
