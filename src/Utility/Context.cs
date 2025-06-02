@@ -60,7 +60,7 @@ internal sealed class Context
 			CarbonPlugins = Switches.GetScriptDir(Path.Combine(Carbon, "plugins"));
 			if (!Directory.Exists(CarbonPlugins)) Directory.CreateDirectory(CarbonPlugins);
 
-			CarbonConfig = Path.Combine(Carbon, "config.json");
+			CarbonConfig = Path.Combine(Switches.GetCarbonConfigDir(Carbon), "config.json");
 		}
 		catch (System.Exception e)
 		{
