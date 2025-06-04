@@ -153,8 +153,6 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"mscorlib",
 		"netstandard",
 
-		"Carbon.UniTask",
-
 		"System.Core",
 		"System.Data",
 		"System.Drawing",
@@ -171,10 +169,11 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"System",
 
 		"Carbon.Common",
-		"Carbon.Common.Client.V2",
 		"Carbon.SDK",
 		"Carbon.Test",
+		"Carbon.Startup",
 		"Carbon.Profiler",
+		"Carbon.UniTask",
 
 		"MySql.Data",
 		"protobuf-net.Core",
