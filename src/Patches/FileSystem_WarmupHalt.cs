@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections;
+using System.Threading;
 using Carbon;
 using Carbon.Core;
 using HarmonyLib;
 
 namespace Patches;
 
-[HarmonyPatch(typeof(FileSystem_Warmup), nameof(FileSystem_Warmup.Run), typeof(Action<string>), typeof(string))]
+[HarmonyPatch(typeof(FileSystem_Warmup), nameof(FileSystem_Warmup.Run), typeof(Action<string>), typeof(string), typeof(CancellationToken))]
 internal static class FileSystem_WarmupHalt
 {
 	internal static bool IsReady = false;
