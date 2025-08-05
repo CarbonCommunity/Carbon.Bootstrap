@@ -94,32 +94,13 @@ internal sealed class ModuleManager : AddonManager
 
 			OnFileCreated = (sender, file) =>
 			{
-				if (!Watcher.InitialEvent && !Community.Runtime.Config.Watchers.ModuleWatchers)
+				if (!Watcher.InitialEvent)
 				{
 					return;
 				}
 
 				Load(file, "ModuleManager.Created");
 			},
-			OnFileChanged = (sender, file) =>
-			{
-				if (!Community.Runtime.Config.Watchers.ModuleWatchers)
-				{
-					return;
-				}
-
-				Unload(file, "ModuleManager.Changed");
-				Load(file, "ModuleManager.Changed");
-			},
-			OnFileDeleted = (sender, file) =>
-			{
-				if (!Community.Runtime.Config.Watchers.ModuleWatchers)
-				{
-					return;
-				}
-
-				Unload(file, "ModuleManager.Deleted");
-			}
 		});
 	}
 

@@ -104,7 +104,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 
 			OnFileCreated = (_, file) =>
 			{
-				if (!Watcher.InitialEvent && !Community.Runtime.Config.Watchers.ExtensionWatchers)
+				if (!Watcher.InitialEvent)
 				{
 					return;
 				}
@@ -114,30 +114,6 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 					_created.Add(file);
 				}
 			},
-			OnFileChanged = (sender, file) =>
-			{
-				if (!Community.Runtime.Config.Watchers.ExtensionWatchers)
-				{
-					return;
-				}
-
-				if (!_created.Contains(file) && !_changed.Contains(file) && !_deleted.Contains(file))
-				{
-					_changed.Add(file);
-				}
-			},
-			OnFileDeleted = (sender, file) =>
-			{
-				if (!Community.Runtime.Config.Watchers.ExtensionWatchers)
-				{
-					return;
-				}
-
-				if (!_created.Contains(file) && !_changed.Contains(file) && !_deleted.Contains(file))
-				{
-					_deleted.Add(file);
-				}
-			}
 		});
 
 		Watcher.Handler.EnableRaisingEvents = false;
