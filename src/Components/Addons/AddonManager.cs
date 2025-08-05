@@ -18,7 +18,6 @@ internal abstract class AddonManager : CarbonBehaviour, IAddonManager
 		public IReadOnlyList<Type> Types { get; internal set; }
 		public IReadOnlyList<Type> Shared { get; internal set; }
 		public string File { get; internal set; }
-		public bool CanHotload { get; internal set; }
 	}
 
 	internal readonly AssemblyLoader _loader = new();
