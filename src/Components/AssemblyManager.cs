@@ -178,17 +178,18 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"MySql.Data",
 		"protobuf-net.Core",
 		"protobuf-net",
-		"websocket-sharp", // ws client/server
+		"websocket-sharp",
 
 		"Assembly-CSharp-firstpass",
 		"Assembly-CSharp",
 
-		"Fleck", // bundled with rust (websocket server)
-		"Newtonsoft.Json", // bundled with rust
+		"Fleck",
+		"Newtonsoft.Json",
 
 		"Ionic.Zip.Reduced",
 
 		"Cronos",
+		"BoomlagoonJSON",
 		"Facepunch.BurstCloth",
 		"Facepunch.Console",
 		"Facepunch.Network",
