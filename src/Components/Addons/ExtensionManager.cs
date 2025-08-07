@@ -104,7 +104,7 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 
 			OnFileCreated = (_, file) =>
 			{
-				if (!Watcher.InitialEvent && !Community.Runtime.Config.Watchers.ExtensionWatchers)
+				if (!Watcher.InitialEvent)
 				{
 					return;
 				}
@@ -114,30 +114,6 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 					_created.Add(file);
 				}
 			},
-			OnFileChanged = (sender, file) =>
-			{
-				if (!Community.Runtime.Config.Watchers.ExtensionWatchers)
-				{
-					return;
-				}
-
-				if (!_created.Contains(file) && !_changed.Contains(file) && !_deleted.Contains(file))
-				{
-					_changed.Add(file);
-				}
-			},
-			OnFileDeleted = (sender, file) =>
-			{
-				if (!Community.Runtime.Config.Watchers.ExtensionWatchers)
-				{
-					return;
-				}
-
-				if (!_created.Contains(file) && !_changed.Contains(file) && !_deleted.Contains(file))
-				{
-					_deleted.Add(file);
-				}
-			}
 		});
 
 		Watcher.Handler.EnableRaisingEvents = false;
@@ -197,35 +173,6 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 		}
 
 		var item = _loaded.FirstOrDefault(x => x.File == file);
-
-		if (item != null)
-		{
-			if (item.CanHotload)
-			{
-				var arg2 = Pool.Get<CarbonEventArgs>();
-				arg2.Init(item.File);
-
-				try
-				{
-					item.Addon.OnUnloaded(arg2);
-
-					Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloaded, arg2);
-				}
-				catch (Exception ex)
-				{
-					Logger.Error($"Couldn't unload extension '{item.File}'", ex);
-
-					Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloadFailed, arg2);
-				}
-
-				Pool.Free(ref arg2);
-			}
-			else
-			{
-				return null;
-			}
-		}
-
 		var definition = (AssemblyDefinition)null;
 		var stream = (MemoryStream)null;
 		var extension = (ICarbonExtension)null;
@@ -326,8 +273,6 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 
 		try
 		{
-			item.CanHotload = item.Addon.GetType().HasAttribute(typeof(HotloadableAttribute));
-
 			extension.Awake(arg);
 			extension.OnLoaded(arg);
 
@@ -360,11 +305,6 @@ internal sealed class ExtensionManager : AddonManager, IExtensionManager
 
 		try
 		{
-			if (!item.CanHotload)
-			{
-				return;
-			}
-
 			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ExtensionUnloaded, arg);
 
 			item.Addon.OnUnloaded(EventArgs.Empty);

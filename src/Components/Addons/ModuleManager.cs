@@ -94,32 +94,13 @@ internal sealed class ModuleManager : AddonManager
 
 			OnFileCreated = (sender, file) =>
 			{
-				if (!Watcher.InitialEvent && !Community.Runtime.Config.Watchers.ModuleWatchers)
+				if (!Watcher.InitialEvent)
 				{
 					return;
 				}
 
 				Load(file, "ModuleManager.Created");
 			},
-			OnFileChanged = (sender, file) =>
-			{
-				if (!Community.Runtime.Config.Watchers.ModuleWatchers)
-				{
-					return;
-				}
-
-				Unload(file, "ModuleManager.Changed");
-				Load(file, "ModuleManager.Changed");
-			},
-			OnFileDeleted = (sender, file) =>
-			{
-				if (!Community.Runtime.Config.Watchers.ModuleWatchers)
-				{
-					return;
-				}
-
-				Unload(file, "ModuleManager.Deleted");
-			}
 		});
 	}
 
@@ -127,36 +108,6 @@ internal sealed class ModuleManager : AddonManager
 	public override Assembly Load(string file, string requester = null)
 	{
 		var item = _loaded.FirstOrDefault(x => x.File == file);
-
-		if (item != null)
-		{
-			if (item.CanHotload)
-			{
-				var arg = Pool.Get<ModuleEventArgs>();
-				arg.Init(item.File, item.Addon as IModulePackage, null);
-
-                try
-                {
-                	item.Addon.OnUnloaded(EventArgs.Empty);
-
-                	Carbon.Bootstrap.Events.Trigger(CarbonEvent.ModuleUnloaded, arg);
-                }
-                catch (Exception ex)
-                {
-                	Logger.Error($"Couldn't unload module '{item.File}'", ex);
-
-                	Carbon.Bootstrap.Events.Trigger(CarbonEvent.ModuleUnloadFailed, arg);
-                }
-
-				Pool.Free(ref arg);
-			}
-			else
-			{
-				Logger.Warn($"Module '{Path.GetFileName(item.File)}' does not support hotloading.");
-				return null;
-			}
-		}
-
 		var definition = (AssemblyDefinition)null;
 		var stream = (MemoryStream)null;
 		var module = (IModulePackage)null;
@@ -253,9 +204,6 @@ internal sealed class ModuleManager : AddonManager
 			var arg = Pool.Get<CarbonEventArgs>();
 			arg.Init(file);
 
-			var isHotloadable = item.Addon.GetType().HasAttribute(typeof(HotloadableAttribute));
-			item.CanHotload = isHotloadable;
-
 			module.Awake(arg);
 			module.OnLoaded(arg);
 
@@ -299,11 +247,6 @@ internal sealed class ModuleManager : AddonManager
 
 		try
 		{
-			if (!item.CanHotload)
-			{
-				return;
-			}
-
 			var arg = Pool.Get<ModuleEventArgs>();
 			arg.Init(file, (IModulePackage)item.Addon, null);
 			Carbon.Bootstrap.Events.Trigger(CarbonEvent.ModuleUnloaded, arg);

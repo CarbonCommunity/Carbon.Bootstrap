@@ -1,18 +1,19 @@
 ﻿using System;
 using System.Collections;
+using System.Threading;
 using Carbon;
 using Carbon.Core;
 using HarmonyLib;
 
 namespace Patches;
 
-[HarmonyPatch(typeof(FileSystem_Warmup), nameof(FileSystem_Warmup.Run), new System.Type[] { typeof(string[]), typeof(Action<string>), typeof(string), typeof(int) })]
+[HarmonyPatch(typeof(FileSystem_Warmup), nameof(FileSystem_Warmup.Run), typeof(Action<string>), typeof(string), typeof(CancellationToken))]
 internal static class FileSystem_WarmupHalt
 {
 	internal static bool IsReady = false;
 	internal static bool AllowNative = false;
 
-	public static IEnumerator Process(string[] assetList, Action<string> statusFunction = null, string format = null, int priority = 0)
+	public static IEnumerator Process(Action<string> statusFunction = null, string format = null)
 	{
 		while (!IsReady || !ModLoader.IsBatchComplete)
 		{
@@ -21,17 +22,17 @@ internal static class FileSystem_WarmupHalt
 
 		AllowNative = true;
 
-		yield return FileSystem_Warmup.Run(assetList, statusFunction, format, priority);
+		yield return FileSystem_Warmup.Run(statusFunction, format);
 	}
 
-	public static bool Prefix(string[] assetList, Action<string> statusFunction, string format, int priority, ref IEnumerator __result)
+	public static bool Prefix(Action<string> statusFunction, string format, ref IEnumerator __result)
 	{
 		if (AllowNative || (IsReady && ModLoader.IsBatchComplete))
 		{
 			return true;
 		}
 
-		__result = Process(assetList, statusFunction, format, priority);
+		__result = Process(statusFunction, format);
 		return false;
 	}
 }
