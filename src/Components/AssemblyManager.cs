@@ -202,6 +202,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 #else
 		"Facepunch.Steamworks.Win64",
 #endif
+		"Facepunch.SteamNetworking",
 		"Facepunch.Unity",
 		"Facepunch.UnityEngine",
 		"Facepunch.Nexus",
