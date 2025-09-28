@@ -140,7 +140,7 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 		{
 			command.Callback?.Invoke(args);
 
-			if (args.PrintOutput && !string.IsNullOrEmpty(args.Reply))
+			if (args.PrintOutput && !string.IsNullOrEmpty(args.Reply) && !args.IsRCon)
 			{
 				switch (args)
 				{
@@ -199,8 +199,6 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 					Logger.Log(reply);
 				}
 			}
-
-			Pool.Free(ref args);
 			return true;
 		}
 		catch (Exception ex)
