@@ -140,7 +140,7 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 		{
 			command.Callback?.Invoke(args);
 
-			if (args.PrintOutput && !string.IsNullOrEmpty(args.Reply) && !args.IsRCon)
+			if (args.PrintOutput && !string.IsNullOrEmpty(args.Reply))
 			{
 				switch (args)
 				{
