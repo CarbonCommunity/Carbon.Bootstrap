@@ -184,9 +184,9 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"Assembly-CSharp-firstpass",
 		"Assembly-CSharp",
 
+		"ZString",
 		"Fleck",
 		"Newtonsoft.Json",
-
 		"Ionic.Zip.Reduced",
 
 		"Cronos",
