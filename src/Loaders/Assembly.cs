@@ -48,8 +48,6 @@ internal sealed class AssemblyLoader : IDisposable
 	{
 		file = Path.GetFileName(file);
 
-		Logger.Debug($"Loading assembly '{file}' requested by '{requester}'");
-
 		string path = default;
 		foreach (string directory in (directories is null) ? _directoryList : directories)
 		{
@@ -57,14 +55,12 @@ internal sealed class AssemblyLoader : IDisposable
 			path = Path.Combine(directory, file);
 		}
 
-		if (String.IsNullOrEmpty(path))
+		if (string.IsNullOrEmpty(path))
 		{
-			Logger.Debug($"Unable to load assembly: '{file}'");
-			return default;
+			return null;
 		}
 
 		byte[] raw = File.ReadAllBytes(path);
-		bool converted = false;
 
 		switch (extensionType)
 		{
@@ -76,15 +72,11 @@ internal sealed class AssemblyLoader : IDisposable
 					case ConversionResult.Fail:
 						Logger.Warn($" >> Failed Oxide extension conversion for '{file}'");
 						return default;
-
-					default:
-						converted = true;
-						break;
 				}
 				break;
 
 			case IExtensionManager.ExtensionTypes.HarmonyMod:
-				converted = Community.Runtime.Compat.ConvertHarmonyMod(ref raw);
+				Community.Runtime.Compat.ConvertHarmonyMod(ref raw);
 
 				if (raw == null)
 				{
@@ -98,8 +90,6 @@ internal sealed class AssemblyLoader : IDisposable
 
 		if (_cache.TryGetValue(sha1, out Item cache))
 		{
-			Logger.Debug($"Loaded assembly from cache: "
-				+ $"'{cache.Assembly.GetName().Name}' v{cache.Assembly.GetName().Version}");
 			return cache;
 		}
 
@@ -128,8 +118,6 @@ internal sealed class AssemblyLoader : IDisposable
 
 		cache = new Item { Name = file, Raw = raw, Assembly = result };
 		_cache.Add(sha1, cache);
-
-		Logger.Debug($"Loaded assembly: '{result.GetName().Name}' v{result.GetName().Version}");
 		return cache;
 	}
 

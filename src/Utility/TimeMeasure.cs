@@ -21,7 +21,6 @@ public struct TimeMeasure : IDisposable
 
 	public void Dispose()
 	{
-		Logger.Debug($"[PROFILER] {_name} took {_watch.ElapsedMilliseconds:0}ms");
 		_watch.Reset();
 		Pool.FreeUnsafe(ref _watch);
 	}

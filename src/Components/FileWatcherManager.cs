@@ -37,8 +37,6 @@ internal sealed class FileWatcherManager : CarbonBehaviour, IFileWatcherManager,
 
 	internal void FileSystemEvent(object sender, FileSystemEventArgs e)
 	{
-		Utility.Logger.Debug($"New file system event '{e.ChangeType}' triggered for file '{e.FullPath}'");
-
 		try
 		{
 			WatchFolder item = _watchlist.Single(x => x.Directory.Equals(Path.GetDirectoryName(e.FullPath)));

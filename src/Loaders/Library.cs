@@ -73,9 +73,6 @@ internal sealed class LibraryLoader : Singleton<LibraryLoader>, IDisposable
 			if (IsBlacklisted(name)) return default;
 			string path = default;
 
-#if DEBUG_VERBOSE
-		Logger.Debug($"Resolve library '{name}' requested by '{requester}'");
-#endif
 
 			foreach (string directory in customDirectories ?? _directoryList)
 			{
@@ -85,12 +82,9 @@ internal sealed class LibraryLoader : Singleton<LibraryLoader>, IDisposable
 				path = newPath;
 			}
 
-			if (String.IsNullOrEmpty(path))
+			if (string.IsNullOrEmpty(path))
 			{
-#if DEBUG_VERBOSE
-				Logger.Error($"Unresolved library: '{name}'");
-#endif
-				return default;
+				return null;
 			}
 
 			byte[] raw = File.ReadAllBytes(path);
@@ -98,20 +92,12 @@ internal sealed class LibraryLoader : Singleton<LibraryLoader>, IDisposable
 
 			if (_cache.TryGetValue(sha1, out Item cache))
 			{
-#if DEBUG_VERBOSE
-			Logger.Debug($"Resolved library from cache: "
-				+ $"'{cache.Assembly.GetName().Name}' v{cache.Assembly.GetName().Version}");
-#endif
 				return cache;
 			}
 
 			Assembly asm = Assembly.Load(raw);
 			cache = new Item { Name = name, Raw = raw, Assembly = asm };
 			_cache.Add(sha1, cache);
-
-#if DEBUG_VERBOSE
-		Logger.Debug($"Resolved library: '{asm.GetName().Name}' v{asm.GetName().Version}");
-#endif
 
 			return cache;
 		}

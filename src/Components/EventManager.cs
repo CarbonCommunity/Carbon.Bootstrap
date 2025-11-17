@@ -16,16 +16,10 @@ internal sealed class EventManager : CarbonBehaviour, IEventManager
 	{
 		if (!events.ContainsKey(eventId)) events[eventId] = callback;
 		else events[eventId] = Delegate.Combine(events[eventId], callback);
-		Utility.Logger.Debug($"[{eventId}] New subscriptor '{callback.Target}' ('{callback.Method}')");
 	}
 
 	public void Trigger(CarbonEvent eventId, EventArgs args)
 	{
-#if DEBUG
-		CarbonEventArgs parsed = args as CarbonEventArgs;
-		string payload = (args == EventArgs.Empty) ? "empty payload" : $"{parsed.Payload}";
-		Utility.Logger.Debug($"[{eventId}] {payload}");
-#endif
 		if (!events.ContainsKey(eventId)) return;
 		Action<EventArgs> @event = events[eventId] as Action<EventArgs>;
 
@@ -43,7 +37,6 @@ internal sealed class EventManager : CarbonBehaviour, IEventManager
 	{
 		if (!events.ContainsKey(eventId)) return;
 		events[eventId] = Delegate.Remove(events[eventId], callback);
-		Utility.Logger.Debug($"[{eventId}] Remove subscription '{callback.Target}'");
 	}
 
 	public void Reset(CarbonEvent eventId)
