@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using API.Abstracts;
 using API.Contracts;
+using Carbon;
 
 namespace Components;
 #pragma warning disable IDE0051
@@ -44,7 +45,6 @@ internal sealed class DownloadManager : CarbonBehaviour, IDownloadManager
 		job.Start = DateTime.UtcNow;
 		_currentDownloads++;
 
-		Utility.Logger.Debug($"Download job '{job.URL}' started");
 		webClient.DownloadDataAsync(address: new Uri(job.URL), job);
 	}
 
@@ -60,7 +60,11 @@ internal sealed class DownloadManager : CarbonBehaviour, IDownloadManager
 			if (e.Cancelled) throw new Exception("Job was cancelled");
 
 			TimeSpan ts = DateTime.UtcNow - ((DownloadItem)e.UserState).Start;
-			Utility.Logger.Log($"Download job '{job.URL}' finished [{FormatBytes(e.Result.LongLength / ts.TotalSeconds):0}/sec]");
+
+			if (!Community.Runtime.Config.Logging.ReducedLogging)
+			{
+				Utility.Logger.Log($"Download job '{job.URL}' finished [{FormatBytes(e.Result.LongLength / ts.TotalSeconds):0}/sec]");
+			}
 
 			if (job.Callback == null) throw new Exception("Callback is null, this is a bug");
 			job.Callback(job.Identifier, e.Result);
