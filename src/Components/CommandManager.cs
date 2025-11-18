@@ -140,6 +140,17 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 		{
 			command.Callback?.Invoke(args);
 
+			if (!args.PrintOutput && args.IsRCon && !string.IsNullOrEmpty(args.Reply))
+			{
+				if (args.Tokenize(out ConsoleSystem.Arg argTok))
+				{
+					if (argTok.Option.RconConnectionId != 0)
+					{
+						Facepunch.RCon.OnMessage(args.Reply, string.Empty, LogType.Log);
+					}
+				}
+			}
+
 			if (args.PrintOutput && !string.IsNullOrEmpty(args.Reply))
 			{
 				switch (args)
