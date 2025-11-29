@@ -43,9 +43,21 @@ internal sealed class Logger
 				formatted += $" ({ex?.Message})\n{ex?.StackTrace}";
 			}
 
+			var color = Console.ForegroundColor;
+			switch (severity)
+			{
+				case Severity.Warning:
+					Console.ForegroundColor = ConsoleColor.Yellow;
+					break;
+				case Severity.Error:
+					Console.ForegroundColor = ConsoleColor.Red;
+					break;
+			}
+
 			if (severity != Severity.Debug)
 			{
 				Console.WriteLine(formatted);
+				Console.ForegroundColor = color;
 			}
 #endif
 			File.AppendAllText(logFile,
