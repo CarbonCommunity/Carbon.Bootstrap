@@ -214,7 +214,22 @@ public sealed class CommandManager : CarbonBehaviour, ICommandManager
 		}
 		catch (Exception ex)
 		{
-			Logger.Error($"Failed executing command '{command}': {ex}");
+			var rconTakeover = false;
+			if (!args.PrintOutput && args.IsRCon)
+			{
+				if (args.Tokenize(out ConsoleSystem.Arg argTok))
+				{
+					if (argTok.Option.RconConnectionId != 0)
+					{
+						Facepunch.RCon.OnMessage($"Failed executing command '{command}': {ex}", string.Empty, LogType.Log);
+						rconTakeover = true;
+					}
+				}
+			}
+			if (!rconTakeover)
+			{
+				Logger.Error($"Failed executing command '{command}': {ex}");
+			}
 			return false;
 		}
 	}
