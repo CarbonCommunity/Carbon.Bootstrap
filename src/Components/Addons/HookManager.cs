@@ -39,12 +39,7 @@ internal sealed class HookManager : AddonManager
 						?? throw new ReflectionTypeLoadException(null, null, null);
 					// -----------------------------------------------------------------------------
 
-					if (AssemblyManager.IsType<Patch>(asm, out _))
-					{
-						Logger.Debug($"Loading hooks file '{file}'");
-						// TODO: Integrate part of HookManager here
-					}
-					else
+					if (!AssemblyManager.IsType<Patch>(asm, out _))
 					{
 						throw new Exception("Unsupported assembly type");
 					}

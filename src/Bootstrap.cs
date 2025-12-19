@@ -15,28 +15,21 @@ public sealed class Bootstrap
 	private static UnityEngine.GameObject _gameObject;
 	private static HarmonyLib.Harmony _harmonyInstance;
 
-	public static string Name { get => assemblyName; }
+	public static string Name =>  assemblyName;
 
-	internal static HarmonyLib.Harmony Harmony { get => _harmonyInstance; }
+	internal static HarmonyLib.Harmony Harmony => _harmonyInstance;
 
-	internal static AnalyticsManager Analytics { get; private set; }
+	internal static AnalyticsManager Analytics;
 
-	internal static AssemblyManager AssemblyEx { get; private set; }
+	internal static AssemblyManager AssemblyEx;
 
-	internal static CommandManager Commands { get; private set; }
+	internal static CommandManager Commands;
 
-	internal static DownloadManager Downloader { get; private set; }
+	internal static DownloadManager Downloader;
 
-	internal static EventManager Events { get; private set; }
+	internal static EventManager Events;
 
-	internal static PermissionManager Permissions { get; private set; }
-
-#if EXPERIMENTAL
-	internal static ThreadManager Threads { get; private set; }
-#endif
-
-	internal static FileWatcherManager Watcher { get; private set; }
-
+	internal static FileWatcherManager Watcher;
 
 	static Bootstrap()
 	{

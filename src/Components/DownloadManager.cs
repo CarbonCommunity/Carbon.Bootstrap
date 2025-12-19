@@ -93,7 +93,6 @@ internal sealed class DownloadManager : CarbonBehaviour, IDownloadManager
 			Identifier = $"{Guid.NewGuid():N}",
 		};
 
-		Utility.Logger.Debug($"Download request for '{job.URL}'");
 		_donwloadQueue.Enqueue(job);
 		byte[] bytes = await tcs.Task;
 
@@ -109,7 +108,6 @@ internal sealed class DownloadManager : CarbonBehaviour, IDownloadManager
 			Identifier = $"{Guid.NewGuid():N}",
 		};
 
-		Utility.Logger.Debug($"New async download request with token '{job.Identifier}': {job.URL}");
 		_donwloadQueue.Enqueue(job);
 	}
 

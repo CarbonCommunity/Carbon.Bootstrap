@@ -51,8 +51,6 @@ internal sealed class ComponentManager : AddonManager
 
 					if (AssemblyManager.IsType<ICarbonComponent>(asm, out types))
 					{
-						Logger.Debug($"Loading component from file '{file}'");
-
 						if (types != null)
 						{
 							foreach (Type type in types)

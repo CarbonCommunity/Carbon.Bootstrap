@@ -6,7 +6,7 @@ using API.Commands;
 using Facepunch;
 using UnityEngine;
 using Utility;
-using Logger = Utility.Logger;
+using Logger = Carbon.Logger;
 
 namespace Components;
 

@@ -60,23 +60,15 @@ internal sealed class Logger
 				Console.ForegroundColor = color;
 			}
 #endif
-			File.AppendAllText(logFile,
-				$"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {formatted}" + Environment.NewLine);
+			File.AppendAllText(logFile, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {formatted}" + Environment.NewLine);
 		}
 	}
 
-	internal static void None(object message)
-		=> Write(Logger.Severity.None, message);
+	internal static void None(object message) => Write(Logger.Severity.None, message);
 
-	internal static void Debug(object message)
-		=> Write(Logger.Severity.Debug, message);
+	internal static void Log(object message) => Write(Logger.Severity.Notice, message);
 
-	internal static void Log(object message)
-		=> Write(Logger.Severity.Notice, message);
+	internal static void Warn(object message) => Write(Logger.Severity.Warning, message);
 
-	internal static void Warn(object message)
-		=> Write(Logger.Severity.Warning, message);
-
-	internal static void Error(object message, Exception ex = null)
-		=> Write(Logger.Severity.Error, message, ex);
+	internal static void Error(object message, Exception ex = null) => Write(Logger.Severity.Error, message, ex);
 }
