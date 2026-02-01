@@ -116,6 +116,7 @@ internal sealed class LibraryLoader : Singleton<LibraryLoader>, IDisposable
 
 	internal static bool IsBlacklisted(string Name)
 	{
+		if (Name.Contains(">")) return true;
 		foreach (string Item in _blacklist)
 			if (Regex.IsMatch(Name, Item)) return true;
 		return false;
