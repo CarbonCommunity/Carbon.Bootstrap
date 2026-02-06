@@ -177,6 +177,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"Carbon.Polyfills",
 
 		"MySql.Data",
+		"MySqlConnector",
 		"protobuf-net.Core",
 		"protobuf-net",
 		"websocket-sharp",
