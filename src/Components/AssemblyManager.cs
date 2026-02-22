@@ -144,7 +144,6 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 	}
 
 	private static readonly IReadOnlyList<string> _blacklistLibs = [
-		@"^Carbon$",
 		@"^Carbon\.Bootstrap|Preloader$",
 		@"^Carbon\..+_\d{4}\.\d{2}\.\d{2}\.\d{4}$",
 	];
@@ -168,6 +167,7 @@ internal sealed class AssemblyManager : CarbonBehaviour, IAssemblyManager
 		"System.Xml",
 		"System",
 
+		"Carbon",
 		"Carbon.Common",
 		"Carbon.SDK",
 		"Carbon.Test",
